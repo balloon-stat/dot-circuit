@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <title>Circuit Life</title>
+    <link rel="shortcut icon" href="favicon.ico" type="image/vnd.microsoft.icon">
+    <link rel="stylesheet" href="main.css">
+  </head>
+  <body>
+    <div id="header">
+      <h1><a href="/">Circuit Life</a></h1>
+    </div>
+    <div class="container">
+      <div class="content">
+        <div class="line">
+          <button id="serve">circuits</button>
+          <button id="upload">upload</button>
+        </div>
+        <div id="space"></div>
+        <div id="circuit-container">
+          <canvas id="circuit" width="500" height="300"></canvas>
+        </div>
+        <div id="info"></div>
+      </div>
+    </div>
+    <div id="footer">
+      <div id="creater">by yuk</div>
+    </div>
+    <canvas id="map"></canvas>
+    <canvas id="thumbnail"></canvas>
+    <script>
+      var mapkey      = "";
+      var init_origin = 0;
+      var init_dpp    = 20;
+    </script>
+    <script src="circuit.js"></script>
+  </body>
+</html>
+

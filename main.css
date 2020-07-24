@@ -1,0 +1,167 @@
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #f8f8ea;
+}
+
+h1 {
+    font-size: 54px;
+    margin: 0;
+    padding: 30px;
+    padding-bottom: 0;
+}
+
+a {
+    color: gray;
+    text-decoration: none;
+}
+
+h1:hover, a:hover {
+    color: #555;
+}
+
+div, p {
+    font-size: 23px;
+    color: gray;
+    font-weight: bold;
+}
+
+.container {
+    width: 650px;
+    height: 550px;
+    margin: 0 auto;
+    background-color: #e8e8da;
+}
+
+.content {
+    width: 550px;
+    margin: 0 auto;
+    padding: 40px 0;
+}
+
+#header {
+    margin: 0;
+    height: 140px;
+    background-color: #d8d8ca;
+}
+
+#header div {
+    margin: 0;
+    margin-right: 20px;
+    margin-left: auto;
+    padding: 20px;
+    text-align: right;
+    width: 300px;
+}
+
+#footer {
+    margin: 0;
+    height: 200px;
+    background-color: #d8d8ca;
+}
+
+#creater {
+    width: 100px;
+    margin-right: 20px;
+    margin-left: auto;
+    padding: 10px 12px;
+}
+
+#line {
+}
+
+#space {
+    width: 550px;
+    height:60px;
+}
+
+#upload {
+    font-size: 23px;
+    font-weight: bold;
+    float: right;
+    text-align: center;
+    color: #9d9d9d;
+    background-color: #eaeeff;
+    width: 100px;
+    margin: 10px;
+    padding: 10px;
+    border: solid 1px #cecece;
+    cursor: pointer;
+}
+
+#upload:hover {
+    color: black;
+}
+
+#upload:active {
+    color: white;
+}
+
+#serve {
+    font-size: 23px;
+    font-weight: bold;
+    float: right;
+    text-align: center;
+    color: #9a9a9a;
+    background-color: #ffeeea;
+    width: 100px;
+    margin: 10px;
+    padding: 10px;
+    border: solid 1px #cecece;
+    cursor: pointer;
+}
+
+#serve:hover {
+    color: black;
+}
+
+#serve:active {
+    color: white;
+}
+
+#list {
+    padding: 20px;
+}
+
+#list .item {
+    height: 200px;
+}
+
+#list .item .info {
+    padding: 30px;
+}
+
+#list .item .info a:hover {
+    color: red;
+}
+
+#list img {
+    float: left;
+    margin: 0 20px;
+    box-shadow:4px 2px 6px #010101;
+    border: none
+}
+
+.center {
+    text-align: center;
+}
+
+#circuit-container {
+    width: 95%;
+    background-color: #e8e8e8;
+    margin: 10px;
+    padding: 0;
+}
+
+#circuit {
+    margin: 10px;
+}
+
+#info {
+    margin: 0 20px;
+}
+
+#map, #thumbnail {
+    display: none;
+}
