@@ -5,29 +5,29 @@ if (!Promise) {
     throw new Error("Promise object not found");
 }
 
-var Srv = {
+const Srv = {
   upload: function() {
       Srv.title = window.prompt("Input Title");
       if (!Srv.title)
           return;
-      var canvas = document.getElementById('map');
+      const canvas = document.getElementById('map');
       Cuit.mapto(canvas);
       Srv.map = Srv.toBlob(canvas);
       Srv.toThumb(Cuit.ctx).
           then(function() {
-              var thm = document.getElementById('thumbnail');
+              const thm = document.getElementById('thumbnail');
               Srv.thm = Srv.toBlob(thm);
           })
           //.then(Srv.send)
-          .then(function() { location.href = '/serve'; });
+          //.then(function() { location.href = '/serve'; });
   },
   toBlob: function(canvas) {
-      var dataURL = canvas.toDataURL();
-      var base64 = dataURL.split(',')[1];
-      var bstr = window.atob(base64);
-      var arr = new Uint8Array(bstr.length);
+      const dataURL = canvas.toDataURL();
+      const base64 = dataURL.split(',')[1];
+      const bstr = window.atob(base64);
+      let arr = new Uint8Array(bstr.length);
 
-      for (var i = 0, max = bstr.length; i < max; i++)
+      for (let i = 0, max = bstr.length; i < max; i++)
       {
           arr[i] = bstr.charCodeAt(i);
       }
@@ -35,14 +35,14 @@ var Srv = {
   },
   toThumb: function(ctx) {
       return new Promise((resolve,reject) => {
-        var ratio = 0.5;
-        var org = ctx.canvas;
-        var thm = document.querySelector('#thumbnail');
-        var image = new Image();
+        const ratio = 0.5;
+        const org = ctx.canvas;
+        const thm = document.querySelector('#thumbnail');
+        let image = new Image();
         image.onload = function() {
-            var ofs = Cuit.offset;
-            var sw = org.width - ofs.x;
-            var sh = org.height - ofs.y;
+            const ofs = Cuit.offset;
+            const sw = org.width - ofs.x;
+            const sh = org.height - ofs.y;
             thm.width = sw * ratio;
             thm.height = sh * ratio;
             thm.getContext("2d").drawImage(image, ofs.x, ofs.y, sw, sh, 0, 0, thm.width, thm.height);
@@ -53,7 +53,7 @@ var Srv = {
   },
 };
 
-var Cuit = {
+const Cuit = {
   mouseIsDown: false,
   dpp: 20,
   width: 600,
@@ -118,32 +118,32 @@ var Cuit = {
       canvas.addEventListener('wheel', Cuit.mouseWheel, {passive: false});
   },
   setButtons: function() {
-      var setMode = function() {
+      const setMode = function() {
           Cuit.mode = this.name
           Cuit.drawSyms[this.name]();
       };
-      var btns = [
+      const btns = [
           { name: 'S', color: "#ffcccc", toggle: true, func: function(){}},
           { name: 'W', color: "#ccffcc", group: 1, on: true, func: setMode },
           { name: 'E', color: "#ccffcc", group: 1, func: setMode },
           { name: 'R', color: "#ccffcc", group: 1, func: setMode },
           { name: '+', color: "#ccccff", func: Cuit.save },
       ];
-      for (var i = 0; i < btns.length; i++)
+      for (let i = 0; i < btns.length; i++)
           Cuit.buttons[btns[i].name] = new Cuit.Button(btns[i]);
   },
   mapto: function(canvas) {
       canvas.width = Cuit.width;
       canvas.height = Cuit.height;
-      var wh = canvas.width;
-      var ht = canvas.height;
-      var ctx = canvas.getContext("2d");
-      var map = Cuit.map;
-      var idata = ctx.getImageData(0, 0, wh, ht);
-      var iarr = idata.data;
-      var color = {};
-      var el;
-      for (var e in Cuit.color)
+      const wh = canvas.width;
+      const ht = canvas.height;
+      const ctx = canvas.getContext("2d");
+      const map = Cuit.map;
+      let idata = ctx.getImageData(0, 0, wh, ht);
+      let iarr = idata.data;
+      let color = {};
+      let el;
+      for (let e in Cuit.color)
       {
           if (e < 1024)
               el = e;
@@ -151,12 +151,12 @@ var Cuit = {
               el = e & 0x00ff;
           color[e] = Cuit.color[el];
       };
-      for (var y = 0; y < ht; y++)
-      for (var x = 0; x < wh; x++)
+      for (let y = 0; y < ht; y++)
+      for (let x = 0; x < wh; x++)
       {
-          var n = x + y * wh;
-          var ni = 4 * n;
-          var cell = color[map[n] & 0x00ffff];
+          const n = x + y * wh;
+          const ni = 4 * n;
+          const cell = color[map[n] & 0x00ffff];
           iarr[ni+0] = (cell & 0x00ff0000) >> 16;
           iarr[ni+1] = (cell & 0x0000ff00) >> 8;
           iarr[ni+2] =  cell & 0x000000ff;
@@ -166,32 +166,32 @@ var Cuit = {
   },
   tomap: function(src) {
       return new Promise((resolve, reject) => {
-        var canvas = document.getElementById('map');
+        const canvas = document.getElementById('map');
         canvas.width = Cuit.width;
         canvas.height = Cuit.height;
-        var wh = canvas.width;
-        var ht = canvas.height;
-        var ctx = canvas.getContext("2d");
-        var color = Cuit.color;
-        var img = new Image();
+        const wh = canvas.width;
+        const ht = canvas.height;
+        const ctx = canvas.getContext("2d");
+        const color = Cuit.color;
+        let img = new Image();
         img.src = src;
         img.onload = function() {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            var map = {};
-            var color = Cuit.color;
-            var elem = {};
-            for (var c in color)
+            const color = Cuit.color;
+            let map = {};
+            let elem = {};
+            for (let c in color)
             {
                 elem[color[c]] = c;
             }
-            var idata = ctx.getImageData(0, 0, wh, ht);
-            var iarr = idata.data;
-            for (var y = 1, ymax = ht - 1; y < ymax; y++)
-            for (var x = 1, xmax = wh - 1; x < ymax; x++)
+            let idata = ctx.getImageData(0, 0, wh, ht);
+            let iarr = idata.data;
+            for (let y = 1, ymax = ht - 1; y < ymax; y++)
+            for (let x = 1, xmax = wh - 1; x < ymax; x++)
             {
-                var n = x + y * wh;
-                var ni = 4 * n;
-                var cell = iarr[ni] << 16 | iarr[ni+1] << 8 | iarr[ni+2];
+                const n = x + y * wh;
+                const ni = 4 * n;
+                const cell = iarr[ni] << 16 | iarr[ni+1] << 8 | iarr[ni+2];
                 map[n] = elem[cell];
                 if (map[n] === undefined)
                     throw new Error("( " + x + ", " + y + " ) color not defined");
@@ -206,9 +206,9 @@ var Cuit = {
       });
   },
   save: function() {
-      var map = Cuit.map;
-      var strmap = "";
-      for (var i = 0, max = map.length; i < max; i++)
+      const map = Cuit.map;
+      let strmap = "";
+      for (let i = 0, max = map.length; i < max; i++)
           strmap += map[i] + ",";
 
       localStorage.setItem('CuitMap', strmap);
@@ -216,22 +216,22 @@ var Cuit = {
   },
   newMap: function() {
       Cuit.msg.textContent = "New Circuit";
-      var w = 'W'.charCodeAt(0);
-      var max = Cuit.width * Cuit.height;
-      var map = new Int32Array(max);
-      for (var i = 0; i < max; i++)
+      const w = 'W'.charCodeAt(0);
+      const max = Cuit.width * Cuit.height;
+      let map = new Int32Array(max);
+      for (let i = 0; i < max; i++)
           map[i] = w;
       return map;
   },
   readMap: function() {
       Cuit.msg.textContent = "circuit read";
-      var map = localStorage.getItem('CuitMap');
+      const map = localStorage.getItem('CuitMap');
       if (!map)
           return Cuit.newMap();
-      var max = Cuit.width * Cuit.height;
-      var arr = new Int32Array(max);
-      var a = map.split(",");
-      for (var i = 0, max = arr.length; i < max; i++)
+      const a = map.split(",");
+      const max = Cuit.width * Cuit.height;
+      let arr = new Int32Array(max);
+      for (let i = 0, max = arr.length; i < max; i++)
           arr[i] = a[i];
       return arr;
   },
@@ -241,7 +241,7 @@ var Cuit = {
       ctx.fillStyle = '#bdbdfd';
       ctx.fillRect(0, 0, 3, ctx.canvas.height);
       ctx.fillRect(Cuit.offset.x - 3, 0, Cuit.offset.x, ctx.canvas.height);
-      for (var k in Cuit.buttons)
+      for (let k in Cuit.buttons)
           Cuit.buttons[k].draw();
   },
   update: function(interval) {
@@ -250,44 +250,44 @@ var Cuit = {
       setTimeout(function() { Cuit.update(interval); }, interval);
   },
   show: function() {
-      var dp = Cuit.dpp;
-      var ox = Cuit.origin.x;
-      var oy = Cuit.origin.y;
-      var sx = Math.max(ox, 1);
-      var sy = Math.max(oy, 1);
-      var ofs = Cuit.offset;
-      var wh = Cuit.width;
-      var ht = Cuit.height;
-      var ctx = Cuit.ctx;
-      var cvs = ctx.canvas;
-      var cw = cvs.width - ofs.x;
-      var ch = cvs.height - ofs.y;
-      var csize = cvs.width * cvs.height;
-      var map = Cuit.map;
-      var color = Cuit.color;
+      const dp = Cuit.dpp;
+      const ox = Cuit.origin.x;
+      const oy = Cuit.origin.y;
+      const sx = Math.max(ox, 1);
+      const sy = Math.max(oy, 1);
+      const ofs = Cuit.offset;
+      const wh = Cuit.width;
+      const ht = Cuit.height;
+      const ctx = Cuit.ctx;
+      const cvs = ctx.canvas;
+      const cw = cvs.width - ofs.x;
+      const ch = cvs.height - ofs.y;
+      const csize = cvs.width * cvs.height;
+      const map = Cuit.map;
+      const color = Cuit.color;
 
       if (ox < 1 || oy < 1 || ox + cw / dp > wh || oy + ch / dp > ht || (wh - 2) * dp < cvs.width || (ht - 2) * dp < cvs.height)
           ctx.clearRect(ofs.x, ofs.y, cw, ch);
 
-      var idata = ctx.getImageData(ofs.x, ofs.y, cw, ch);
-      var iarr = idata.data;
-      for (var y = sy, ymax = ht - 1; y < ymax; y++)
+      let idata = ctx.getImageData(ofs.x, ofs.y, cw, ch);
+      let iarr = idata.data;
+      for (let y = sy, ymax = ht - 1; y < ymax; y++)
       {
-          var ry = (y - oy) * dp;
-          for (var x = sx, xmax = wh - 1; x < xmax; x++)
+          const ry = (y - oy) * dp;
+          for (let x = sx, xmax = wh - 1; x < xmax; x++)
           {
-              var rx = (x - ox) * dp;
+              const rx = (x - ox) * dp;
               if (rx > cw || ry > ch)
                   break;
-              var cell = color[map[x + y * wh] & 0x00ffff];
-              for (var ny = 0; ny < dp; ny++)
+              const cell = color[map[x + y * wh] & 0x00ffff];
+              for (let ny = 0; ny < dp; ny++)
               {
-                  var ni = rx + (ry + ny) * cw;
-                  for (var nx = 0; nx < dp; nx++)
+                  const ni = rx + (ry + ny) * cw;
+                  for (let nx = 0; nx < dp; nx++)
                   {
                       if (rx + nx >= cw)
                           break;
-                      var nix = 4 * (ni + nx);
+                      const nix = 4 * (ni + nx);
                       iarr[nix+0] = cell >> 16;
                       iarr[nix+1] = (cell & 0x0000ff00) >> 8;
                       iarr[nix+2] =  cell & 0x000000ff;
@@ -299,38 +299,40 @@ var Cuit = {
       ctx.putImageData(idata, ofs.x, ofs.y);
       if (Cuit.mode == 'E')
           Cuit.drawEditRect();
+      if (Cuit.mode == 'W')
+          Cuit.drawCurPos();
       requestAnimationFrame(Cuit.show);
   },
   step: function(ctx) {
-      var wh = Cuit.width;
-      var ht = Cuit.height;
-      var delta = [ 1, wh, -1, -wh ]
-      var rev_d = [ 2, 3, 0, 1 ]
-      var org = Cuit.map;
-      var nex = new Int32Array(wh * ht);
-      var ec = 'C'.charCodeAt(0);
-      var ej = 'J'.charCodeAt(0);
-      var ei = 'I'.charCodeAt(0);
-      var eo = 'O'.charCodeAt(0);
-      var ev = 'V'.charCodeAt(0);
-      var ew = 'W'.charCodeAt(0);
-      var ec_on = 'C'.charCodeAt(0) + 1024;
-      var ei_on = 'I'.charCodeAt(0) + 1024;
-      var eo_on = 'O'.charCodeAt(0) + 1024;
+      const wh = Cuit.width;
+      const ht = Cuit.height;
+      const delta = [ 1, wh, -1, -wh ]
+      const rev_d = [ 2, 3, 0, 1 ]
+      const org = Cuit.map;
+      let nex = new Int32Array(wh * ht);
+      const ec = 'C'.charCodeAt(0);
+      const ej = 'J'.charCodeAt(0);
+      const ei = 'I'.charCodeAt(0);
+      const eo = 'O'.charCodeAt(0);
+      const ev = 'V'.charCodeAt(0);
+      const ew = 'W'.charCodeAt(0);
+      const ec_on = 'C'.charCodeAt(0) + 1024;
+      const ei_on = 'I'.charCodeAt(0) + 1024;
+      const eo_on = 'O'.charCodeAt(0) + 1024;
 
-      for (var y = 1, ymax = ht - 1; y < ymax; y++)
-      for (var x = 1, xmax = wh - 1; x < xmax; x++)
+      for (let y = 1, ymax = ht - 1; y < ymax; y++)
+      for (let x = 1, xmax = wh - 1; x < xmax; x++)
       {
-          var i = x + y * wh;
+          const i = x + y * wh;
           if (org[i] == ew || org[i] == ev || org[i] == ej) {
               nex[i] = org[i];
               continue;
           }
           if (org[i] == ec || (org[i] & 0x00ffff) == ec_on) {
-              var on = false;
-              for (var j = 0; j < delta.length; j++)
+              let on = false;
+              for (let j = 0; j < delta.length; j++)
               {
-                  var neig = org[i + delta[j]];
+                  let neig = org[i + delta[j]];
                   if (neig == ew)
                       continue;
                   if (neig == ej) {
@@ -345,10 +347,10 @@ var Cuit = {
               continue;
           }
           if (org[i] == ei || org[i] == ei_on) {
-              var on = true;
-              for (var j = 0; j < delta.length; j++)
+              let on = true;
+              for (let j = 0; j < delta.length; j++)
               {
-                  var neig = org[i + delta[j]];
+                  let neig = org[i + delta[j]];
                   if (neig == ec) {
                       on = false;
                       break;
@@ -358,10 +360,10 @@ var Cuit = {
               continue;
           }
           if (org[i] == eo || org[i] == eo_on) {
-              var on = true;
-              for (var j = 0; j < delta.length; j++)
+              let on = true;
+              for (let j = 0; j < delta.length; j++)
               {
-                  var neig = org[i + delta[j]];
+                  let neig = org[i + delta[j]];
                   if (neig == ei_on) {
                       on = false;
                       break;
@@ -376,40 +378,45 @@ var Cuit = {
   },
   showPos: function(p) {
       if (!p) {
-          var m = Cuit.mouse;
+          const m = Cuit.mouse;
           p = Cuit.calcPos(m.x, m.y);
           if (!p)
               return;
       }
-      var ctx = Cuit.ctx;
-      var dp = Cuit.dpp;
-      if (Cuit.mode == "W") {
-          ctx.fillStyle = "#f0f0f0";
-          ctx.fillRect(p.rx, p.ry, dp, dp);
-      }
-
-      let pos = document.getElementById('pos');
+      const ctx = Cuit.ctx;
+      const pos = document.getElementById('pos');
       pos.textContent = " ( " + p.x + ", " + p.y + " ) ";
   },
   drawEditRect: function() {
-      var end = Cuit.point.end;
-      var begin = Cuit.point.begin;
-      var width = end.rx - begin.rx;
-      var height = end.ry - begin.ry;
+      const end = Cuit.point.end;
+      const begin = Cuit.point.begin;
+      const width = end.rx - begin.rx;
+      const height = end.ry - begin.ry;
       Cuit.ctx.strokeStyle = '#ffff00';
       Cuit.ctx.strokeRect(begin.rx, begin.ry, width, height);
   },
+  drawCurPos: function() {
+      const dpp = Cuit.dpp;
+      const p = Cuit.pos;
+      if (!p || Cuit.mouseIsDown)
+        return;
+      Cuit.ctx.globalCompositeOperation = "multiply";
+      Cuit.ctx.fillStyle = "#f0f0f0";
+      Cuit.ctx.fillRect(p.rx, p.ry, dpp, dpp);
+      Cuit.ctx.globalCompositeOperation = "source-over";
+  },
+
   mouseMove: function(e) {
       Cuit.msg.textContent = "";
-      var px = e.offsetX;
-      var py = e.offsetY;
+      const px = e.offsetX;
+      const py = e.offsetY;
       Cuit.mouse.x = px;
       Cuit.mouse.y = py;
-      var p = Cuit.calcPos(px, py);
+      const p = Cuit.calcPos(px, py);
       if (!p) {
-          var btns = Cuit.buttons;
-          var isin = false;
-          for (var k in btns) {
+          const btns = Cuit.buttons;
+          let isin = false;
+          for (let k in btns) {
               if(btns[k].isin(px, py))
                   isin = true;
           }
@@ -431,43 +438,49 @@ var Cuit = {
       }
   },
   calcPos: function(px, py) {
-      var dp = Cuit.dpp;
-      var ofs = Cuit.offset;
-      var qx = px - ofs.x;
-      var qy = py - ofs.y;
+      const dp = Cuit.dpp;
+      const ofs = Cuit.offset;
+      const qx = px - ofs.x;
+      const qy = py - ofs.y;
       if (qx < 0 || qy < 0)
         return null;
-      var ox = qx - qx % dp;
-      var oy = qy - qy % dp;
-      var o = Cuit.origin;
-      var x = ox / dp + o.x;
-      var y = oy / dp + o.y;
-      var ix = x + y * Cuit.width;
+      const ox = qx - qx % dp;
+      const oy = qy - qy % dp;
+      const o = Cuit.origin;
+      const x = ox / dp + o.x;
+      const y = oy / dp + o.y;
+      const ix = x + y * Cuit.width;
       if (x >= Cuit.width - 1 || y >= Cuit.height - 1)
         return null;
-      var rx = ox + ofs.x
-      var ry = oy + ofs.y
+      const rx = ox + ofs.x
+      const ry = oy + ofs.y
       return {x: x, y: y, rx: rx, ry: ry};
   },
   putElem: function(p) {
-      var wh = Cuit.width;
-      var ht = Cuit.height;
+      const wh = Cuit.width;
+      const ht = Cuit.height;
       if (p.x <= 0 || p.x >= wh - 1 || p.y <= 0 || p.y >= ht - 1)
           return;
-      var dp = Cuit.dpp;
-      var ix = p.x + p.y * Cuit.width;
-      var ch = String.fromCharCode(Cuit.selectedElem);
+      const dp = Cuit.dpp;
+      const ix = p.x + p.y * Cuit.width;
+      const ch = String.fromCharCode(Cuit.selectedElem);
       Cuit.ctx.fillStyle = Cuit.strColor[ch];
       Cuit.ctx.fillRect(p.rx, p.ry, dp, dp);
       Cuit.map[ix] = Cuit.selectedElem;
   },
   updateEnd: function(pos) {
       Cuit.show();
-      Cuit.point.end = pos;
+      const p0 = Cuit.point.begin;
+      const pm = Cuit.mouse;
+      const tx = (1 + Math.sign(pm.x - p0.rx)) >>> 1;
+      const ty = (1 + Math.sign(pm.y - p0.ry)) >>> 1;
+      const p = Cuit.pos;
+      const d = Cuit.dpp;
+      Cuit.point.end = {x:p.x+tx, y:p.y+ty, rx:p.rx+tx*d, ry:p.ry+ty*d};
       Cuit.drawEditRect();
   },
   moveOrigin: function(x, y) {
-      var begin = Cuit.point.begin;
+      const begin = Cuit.point.begin;
       if (x != begin.x) {
           Cuit.origin.x += begin.x - x;
       }
@@ -477,12 +490,12 @@ var Cuit = {
       Cuit.show();
   },
   copy: function(isCut) {
-      var begin = Cuit.point.begin;
-      var end = Cuit.point.end;
-      var map = Cuit.map;
-      var wh = Cuit.width;
-      var ew = 'W'.charCodeAt(0);
-      var xi, yi, xf, yf;
+      const begin = Cuit.point.begin;
+      const end = Cuit.point.end;
+      const map = Cuit.map;
+      const wh = Cuit.width;
+      const ew = 'W'.charCodeAt(0);
+      let xi, yi, xf, yf;
       if (begin.x < end.x) {
           xi = begin.x;
           xf = end.x;
@@ -499,13 +512,13 @@ var Cuit = {
           yf = begin.y;
           yi = end.y;
       }
-      var copy = {};
-      for (var y = yi, ymax = yf; y < ymax; y++)
+      let copy = {};
+      for (let y = yi, ymax = yf; y < ymax; y++)
       {
           copy[y] = {};
-          for (var x = xi, xmax = xf; x < xmax; x++)
+          for (let x = xi, xmax = xf; x < xmax; x++)
           {
-              var i = x + y * wh;
+              const i = x + y * wh;
               copy[y][x] = map[i];
               if (isCut)
                   map[i] = ew;
@@ -523,16 +536,16 @@ var Cuit = {
       Cuit.msg.textContent = "cut";
   },
   paste: function(x, y) {
-      var data = Cuit.copydata;
-      var map = Cuit.map;
-      var wh = Cuit.width;
-      var dx = 0;
-      var dy = 0;
-      for (var iy in data)
+      const data = Cuit.copydata;
+      const map = Cuit.map;
+      const wh = Cuit.width;
+      let dx = 0;
+      let dy = 0;
+      for (let iy in data)
       {
-          var line = data[iy];
-          var i = x + (y + dy) * wh
-          for (var ix in line)
+          const line = data[iy];
+          const i = x + (y + dy) * wh
+          for (let ix in line)
           {
               map[i + dx] = line[ix];
               dx++;
@@ -543,14 +556,9 @@ var Cuit = {
       Cuit.show();
       Cuit.msg.textContent = "paste";
   },
-  keyDown: function(evt) {
-      var kc;
-      if (evt)
-        kc = evt.keyCode;
-      else
-        kc = event.keyCode;
-
-      var ch = String.fromCharCode(kc);
+  keyDown: function(e) {
+      const kc = e.keyCode;
+      const ch = String.fromCharCode(kc);
       switch (ch) {
           case 'S': case 'W': case 'E': case 'R':
               Cuit.buttons[ch].on();
@@ -563,7 +571,7 @@ var Cuit = {
           case 'Y': Cuit.yank(); break;
           case 'X': Cuit.cut(); break;
           case 'P':
-              var p = Cuit.point.begin;
+              const p = Cuit.point.begin;
               Cuit.paste(p.x, p.y);
               break;
           case 'G':
@@ -583,7 +591,7 @@ var Cuit = {
   },
   mouseWheel: function(e) {
       e.preventDefault();
-      var n = Cuit.dpp;
+      const n = Cuit.dpp;
       n += Math.sign(e.deltaY);
       if (n >= 1 && n <= 40) {
           Cuit.dpp = n;
@@ -598,8 +606,8 @@ var Cuit = {
       if (Cuit.isRight)
           Cuit.selectedElem = 'W'.charCodeAt(0);
       Cuit.mouseIsDown = true;
-      var m = Cuit.mouse;
-      var ofs = Cuit.offset;
+      const m = Cuit.mouse;
+      const ofs = Cuit.offset;
       if (m.x > ofs.x && m.y > ofs.y) {
           Cuit.point.begin = Cuit.pos;
           Cuit.point.end = Cuit.pos;
@@ -611,11 +619,11 @@ var Cuit = {
           Cuit.selectedElem = Cuit.curElem;
       Cuit.isRight = false;
       Cuit.mouseIsDown = false;
-      var btns = Cuit.buttons;
-      var pos = Cuit.mouse;
-      var ofs = Cuit.offset;
+      const btns = Cuit.buttons;
+      const pos = Cuit.mouse;
+      const ofs = Cuit.offset;
       if (pos.x < ofs.x || pos.y < ofs.y) {
-          for (var k in btns) {
+          for (let k in btns) {
               if(btns[k].isin(pos.x, pos.y))
                   btns[k].on();
           }
@@ -631,11 +639,12 @@ var Cuit = {
 };
 
 Cuit.Button = function(btn) {
-  var xoffset = 30;
-  var yoffset = 20;
-  var margin = 20;
-  var count = 0;
-  var ctx = Cuit.ctx;
+  const xoffset = 30;
+  const yoffset = 20;
+  const margin = 20;
+  const ctx = Cuit.ctx;
+  let btnheight = yoffset;
+  let count = 0;
 
   Cuit.Button = function(btn) {
       this.name = btn.name;
@@ -645,7 +654,7 @@ Cuit.Button = function(btn) {
       this.func = btn.func;
       this.img = btn.img;
       this.x = xoffset;
-      this.y = yoffset;
+      this.y = btnheight;
 
       this.width = 40;
       this.height = 30;
@@ -704,10 +713,10 @@ Cuit.Button = function(btn) {
           this.draw();
           this.func();
           if (this.group) {
-              var btns = Cuit.buttons;
-              for (var k in btns)
+              let btns = Cuit.buttons;
+              for (let k in btns)
               {
-                  var b = btns[k];
+                  let b = btns[k];
                   if (b.group == this.group && b.name != this.name) {
                       btns[k].ison = false;
                       b.draw();
@@ -715,12 +724,11 @@ Cuit.Button = function(btn) {
               }
           }
           else {
-              var that = this;
+              let that = this;
               setTimeout(function() { that.ison = false; that.draw(); }, 500);
           }
       }
-      var height = this.height;
-      yoffset += height + margin;
+      btnheight += this.height + margin;
       count++;
   };
   return new Cuit.Button(btn);
@@ -729,69 +737,71 @@ Cuit.Button = function(btn) {
 Cuit.drawSyms = {
   xoffset: 10, yoffset: 275, width: 8, height: 8, margin: 10,
   base: function() {
-      var ctx = Cuit.ctx;
+      const ctx = Cuit.ctx;
       ctx.fillStyle = 'white';
       ctx.fillRect(this.xoffset - 5, this.yoffset - 10, 90, 25);
   },
   W: function() {
       Cuit.drawSyms.base();
-      var x = this.xoffset;
-      var y = this.yoffset;
-      var w = this.width;
-      var r = this.width / 2;
-      var m = this.margin;
-      var pi2 = Math.PI * 2;
-      var list = [ 'C', 'J', 'I', 'O', 'V' ];
-      var ctx = Cuit.ctx;
-      var col = Cuit.strColor;
+      const x = this.xoffset;
+      const y = this.yoffset;
+      const w = this.width;
+      const r = this.width / 2;
+      const m = this.margin;
+      const pi2 = Math.PI * 2;
+      const list = [ 'C', 'J', 'I', 'O', 'V' ];
+      const ctx = Cuit.ctx;
+      const col = Cuit.strColor;
       ctx.font = "italic bold 14px sans-serif";
-      for (var i = 0, max = list.length; i < max; i++)
+      let sx = x;
+      for (let i = 0, max = list.length; i < max; i++)
       {
-          var el = list[i];
+          const el = list[i];
           ctx.fillStyle = col[el];
           ctx.beginPath();
-          ctx.arc(x + 4, y + 10, r, 0, pi2, false);
+          ctx.arc(sx + 4, y + 10, r, 0, pi2, false);
           ctx.fill()
           ctx.fillStyle = 'gray';
-          ctx.fillText(el, x - 3, y + 2);
-          x += m + w;
+          ctx.fillText(el, sx - 3, y + 2);
+          sx += m + w;
       }
   },
   E: function() {
-      var list = [ 'X', 'Y', 'P' ];
+      const list = [ 'X', 'Y', 'P' ];
       Cuit.drawSyms.strings(list, 1);
   },
   R: function() {
-      var list = [ 'G', 'N' ];
+      const list = [ 'G', 'N' ];
       Cuit.drawSyms.strings(list, 1.5);
   },
   strings: function(list, offset) {
       Cuit.drawSyms.base();
-      var ctx = Cuit.ctx;
+      const ctx = Cuit.ctx;
       ctx.fillStyle = 'gray';
       ctx.font = "italic bold 14px sans-serif";
-      var x = this.xoffset;
-      var y = this.yoffset;
-      var w = this.width;
-      var m = this.margin;
-      x += (m + w) * offset;
-      for (var i = 0, max = list.length; i < max; i++)
+      const x = this.xoffset;
+      const y = this.yoffset;
+      const w = this.width;
+      const m = this.margin;
+      let sx = x;
+      sx += (m + w) * offset;
+      for (let i = 0, max = list.length; i < max; i++)
       {
-          ctx.fillText(list[i], x - 3, y + 8);
-          x += m + w;
+          ctx.fillText(list[i], sx - 3, y + 8);
+          sx += m + w;
       }
   },
 };
 
 ////////////////////////////////////////////////////////////
 
-let spanwheel = document.createElement('span');
-let spanpos   = document.createElement('span');
-let spanmsg   = document.createElement('span');
+const spanwheel = document.createElement('span');
+const spanpos   = document.createElement('span');
+const spanmsg   = document.createElement('span');
 spanwheel.id = 'wheel';
 spanpos  .id = 'pos';
 spanmsg  .id = 'msg';
-let divinfo = document.getElementById('info');
+const divinfo = document.getElementById('info');
 divinfo.appendChild(spanwheel);
 divinfo.appendChild(spanpos);
 divinfo.appendChild(spanmsg);
@@ -805,7 +815,7 @@ if (init_origin != "")
     Cuit.origin = JSON.parse(init_origin);
 if (init_dpp != "")
     Cuit.dpp = parseInt(init_dpp);
-let canvas = document.getElementById('circuit');
+const canvas = document.getElementById('circuit');
 Cuit.init(canvas)
 Cuit.buttons.S.on();
 if (mapkey == "") {
