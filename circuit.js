@@ -6,32 +6,24 @@ if (!Promise) {
 }
 
 const Srv = {
+  write: function() {
+  },
+  read: function() {
+  },
   upload: function() {
       Srv.title = window.prompt("Input Title");
       if (!Srv.title)
           return;
       const canvas = document.getElementById('map');
       Cuit.mapto(canvas);
-      Srv.map = Srv.toBlob(canvas);
+      //Srv.map = canvas.toBlob();
       Srv.toThumb(Cuit.ctx).
           then(function() {
               const thm = document.getElementById('thumbnail');
-              Srv.thm = Srv.toBlob(thm);
+              //Srv.thm = thm.toBlob();
           })
           //.then(Srv.send)
           //.then(function() { location.href = '/serve'; });
-  },
-  toBlob: function(canvas) {
-      const dataURL = canvas.toDataURL();
-      const base64 = dataURL.split(',')[1];
-      const bstr = window.atob(base64);
-      let arr = new Uint8Array(bstr.length);
-
-      for (let i = 0, max = bstr.length; i < max; i++)
-      {
-          arr[i] = bstr.charCodeAt(i);
-      }
-      return new Blob([arr], {type: 'image/png'});
   },
   toThumb: function(ctx) {
       return new Promise((resolve,reject) => {
@@ -87,7 +79,7 @@ const Cuit = {
       79: 0x00008800,
       86: 0x0000ffff,
       87: 0x00ffffff,
-      1091: 0x00fffd8a,
+      1091: 0x00fff88a,
       1097: 0x00ff9900,
       1103: 0x00ff0000
   },
@@ -178,11 +170,11 @@ const Cuit = {
         img.onload = function() {
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             const color = Cuit.color;
-            let map = {};
+            let map = [];
             let elem = {};
-            for (let c in color)
+            for (let e in color)
             {
-                elem[color[c]] = c;
+                elem[color[e]] = e;
             }
             let idata = ctx.getImageData(0, 0, wh, ht);
             let iarr = idata.data;
@@ -330,7 +322,8 @@ const Cuit = {
           }
           if (org[i] == ec || (org[i] & 0x00ffff) == ec_on) {
               let on = false;
-              for (let j = 0; j < delta.length; j++)
+              let j;
+              for (j = 0; j < delta.length; j++)
               {
                   let neig = org[i + delta[j]];
                   if (neig == ew)
@@ -809,8 +802,8 @@ spanwheel.textContent = Cuit.dpp;
 spanpos  .textContent = " ( 0, 0 ) ";
 Cuit.msg = spanmsg;
 
-document.getElementById('upload').addEventListener('click', Srv.upload);
-document.getElementById('serve').addEventListener('click', () => {location.href = '/serve';});
+document.getElementById('write').addEventListener('click', Srv.write);
+document.getElementById('read').addEventListener('click', Srv.read);
 if (init_origin != "")
     Cuit.origin = JSON.parse(init_origin);
 if (init_dpp != "")
