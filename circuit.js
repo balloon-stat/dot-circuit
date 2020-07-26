@@ -119,7 +119,7 @@ const Cuit = {
           { name: 'W', color: "#ccffcc", group: 1, on: true, func: setMode },
           { name: 'E', color: "#ccffcc", group: 1, func: setMode },
           { name: 'R', color: "#ccffcc", group: 1, func: setMode },
-          { name: '+', color: "#ccccff", func: Cuit.save },
+          { name: '+', color: "#ccccff", func: Cuit.saveMap },
       ];
       for (let i = 0; i < btns.length; i++)
           Cuit.buttons[btns[i].name] = new Cuit.Button(btns[i]);
@@ -197,34 +197,32 @@ const Cuit = {
         };
       });
   },
-  save: function() {
+  saveMap: function() {
       const map = Cuit.map;
       let strmap = "";
-      for (let i = 0, max = map.length; i < max; i++)
-          strmap += map[i] + ",";
-
+      for (let i = 0, max = map.length; i < max; i++) {
+          strmap += String.fromCharCode(map[i] & 0x007f);
+      }
       localStorage.setItem('CuitMap', strmap);
       Cuit.msg.textContent = "Circuit saved";
   },
   newMap: function() {
-      Cuit.msg.textContent = "New Circuit";
+      Cuit.msg.textContent = "New circuit";
       const w = 'W'.charCodeAt(0);
       const max = Cuit.width * Cuit.height;
-      let map = new Int32Array(max);
-      for (let i = 0; i < max; i++)
-          map[i] = w;
+      let map = new Uint8Array(max);
+      map.fill(w);
       return map;
   },
   readMap: function() {
-      Cuit.msg.textContent = "circuit read";
+      Cuit.msg.textContent = "Circuit read";
       const map = localStorage.getItem('CuitMap');
       if (!map)
           return Cuit.newMap();
-      const a = map.split(",");
       const max = Cuit.width * Cuit.height;
-      let arr = new Int32Array(max);
-      for (let i = 0, max = arr.length; i < max; i++)
-          arr[i] = a[i];
+      let arr = new Uint8Array(max);
+      for (let i = 0; i < max; i++)
+          arr[i] = map.charCodeAt(i);
       return arr;
   },
   drawUI: function(ctx) {
@@ -301,7 +299,7 @@ const Cuit = {
       const delta = [ 1, wh, -1, -wh ]
       const rev_d = [ 2, 3, 0, 1 ]
       const org = Cuit.map;
-      let nex = new Int32Array(wh * ht);
+      let nex = new Uint8Array(wh * ht);
       const ec = 'C'.charCodeAt(0);
       const ej = 'J'.charCodeAt(0);
       const ei = 'I'.charCodeAt(0);
@@ -584,7 +582,7 @@ const Cuit = {
   },
   mouseWheel: function(e) {
       e.preventDefault();
-      const n = Cuit.dpp;
+      let n = Cuit.dpp;
       n += Math.sign(e.deltaY);
       if (n >= 1 && n <= 40) {
           Cuit.dpp = n;

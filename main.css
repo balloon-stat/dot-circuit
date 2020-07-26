@@ -76,7 +76,7 @@ div, p {
     height:60px;
 }
 
-#upload {
+#read {
     font-size: 23px;
     font-weight: bold;
     float: right;
@@ -90,15 +90,15 @@ div, p {
     cursor: pointer;
 }
 
-#upload:hover {
+#read:hover {
     color: black;
 }
 
-#upload:active {
+#read:active {
     color: white;
 }
 
-#serve {
+#write {
     font-size: 23px;
     font-weight: bold;
     float: right;
@@ -112,11 +112,11 @@ div, p {
     cursor: pointer;
 }
 
-#serve:hover {
+#write:hover {
     color: black;
 }
 
-#serve:active {
+#write:active {
     color: white;
 }
 
