@@ -72,16 +72,16 @@ const Cuit = {
       I_on: "#ff9900",
       O_on: "#ff0000"
   },
-  color: {
-      67: 0x00cdcdff,
-      74: 0x00808080,
-      73: 0x00aa00aa,
-      79: 0x00008800,
-      86: 0x0000ffff,
-      87: 0x00ffffff,
-      1091: 0x00fff88a,
-      1097: 0x00ff9900,
-      1103: 0x00ff0000
+  color: {  // rgba
+      67: 0xcdcdffff,    // 0100 0011
+      74: 0x808080ff,    // 0100 1010
+      73: 0xaa00aaff,    // 0100 1001
+      79: 0x008800ff,    // 0100 1111
+      86: 0x00ffffff,    // 0101 0110
+      87: 0xffffffff,    // 0101 0111
+      195: 0xfff88aff,   // 1100 0011
+      201: 0xff9900ff,   // 1100 1001
+      207: 0xff0000ff    // 1100 1111
   },
   get isRun() {
       if (!Cuit.buttons)
@@ -115,11 +115,11 @@ const Cuit = {
           Cuit.drawSyms[this.name]();
       };
       const btns = [
-          { name: 'S', color: "#ffcccc", toggle: true, func: function(){}},
-          { name: 'W', color: "#ccffcc", group: 1, on: true, func: setMode },
-          { name: 'E', color: "#ccffcc", group: 1, func: setMode },
-          { name: 'R', color: "#ccffcc", group: 1, func: setMode },
-          { name: '+', color: "#ccccff", func: Cuit.saveMap },
+          { name: 'S', color: "#ffcccc", fcolor: "#ffaa11", toggle: true, func: function(){}},
+          { name: 'W', color: "#ccffcc", fcolor: "#000000", group: 1, on: true,  func: setMode },
+          { name: 'E', color: "#ccffcc", fcolor: "#000000", group: 1, on: false, func: setMode },
+          { name: 'R', color: "#ccffcc", fcolor: "#000000", group: 1, on: false, func: setMode },
+          { name: '+', color: "#ccccff", fcolor: "#008800", func: Cuit.saveMap },
       ];
       for (let i = 0; i < btns.length; i++)
           Cuit.buttons[btns[i].name] = new Cuit.Button(btns[i]);
@@ -133,26 +133,23 @@ const Cuit = {
       const map = Cuit.map;
       let idata = ctx.getImageData(0, 0, wh, ht);
       let iarr = idata.data;
+      let iview = new DataView(iarr.buffer);
       let color = {};
       let el;
       for (let e in Cuit.color)
       {
-          if (e < 1024)
+          if (e < 0x0080)
               el = e;
           else
-              el = e & 0x00ff;
+              el = e & 0x007f;
           color[e] = Cuit.color[el];
       };
       for (let y = 0; y < ht; y++)
       for (let x = 0; x < wh; x++)
       {
           const n = x + y * wh;
-          const ni = 4 * n;
-          const cell = color[map[n] & 0x00ffff];
-          iarr[ni+0] = (cell & 0x00ff0000) >> 16;
-          iarr[ni+1] = (cell & 0x0000ff00) >> 8;
-          iarr[ni+2] =  cell & 0x000000ff;
-          iarr[ni+3] = 255;
+          const cell = color[map[n]];
+          iview.setUint32(4*n, cell);
       }
       ctx.putImageData(idata, 0, 0);
   },
@@ -178,12 +175,12 @@ const Cuit = {
             }
             let idata = ctx.getImageData(0, 0, wh, ht);
             let iarr = idata.data;
+            let iview = new DataView(iarr.buffer);
             for (let y = 1, ymax = ht - 1; y < ymax; y++)
             for (let x = 1, xmax = wh - 1; x < ymax; x++)
             {
                 const n = x + y * wh;
-                const ni = 4 * n;
-                const cell = iarr[ni] << 16 | iarr[ni+1] << 8 | iarr[ni+2];
+                const cell = iview.getUint32(4*n);
                 map[n] = elem[cell];
                 if (map[n] === undefined)
                     throw new Error("( " + x + ", " + y + " ) color not defined");
@@ -198,19 +195,16 @@ const Cuit = {
       });
   },
   saveMap: function() {
-      const map = Cuit.map;
-      let strmap = "";
-      for (let i = 0, max = map.length; i < max; i++) {
-          strmap += String.fromCharCode(map[i] & 0x007f);
-      }
-      localStorage.setItem('CuitMap', strmap);
       Cuit.msg.textContent = "Circuit saved";
+      let m = Cuit.map;
+      const strmap = new TextDecoder().decode(m.map(e=>e&0x7f));
+      localStorage.setItem('CuitMap', strmap);
   },
   newMap: function() {
       Cuit.msg.textContent = "New circuit";
       const w = 'W'.charCodeAt(0);
       const max = Cuit.width * Cuit.height;
-      let map = new Uint8Array(max);
+      let map = new Uint16Array(max);
       map.fill(w);
       return map;
   },
@@ -219,18 +213,15 @@ const Cuit = {
       const map = localStorage.getItem('CuitMap');
       if (!map)
           return Cuit.newMap();
-      const max = Cuit.width * Cuit.height;
-      let arr = new Uint8Array(max);
-      for (let i = 0; i < max; i++)
-          arr[i] = map.charCodeAt(i);
-      return arr;
+      let uint8arr = new TextEncoder().encode(map);
+      return new Uint16Array(uint8arr);
   },
   drawUI: function(ctx) {
       ctx.fillStyle = '#fafafa';
       ctx.fillRect(0, 0, Cuit.offset.x, ctx.canvas.height);
       ctx.fillStyle = '#bdbdfd';
       ctx.fillRect(0, 0, 3, ctx.canvas.height);
-      ctx.fillRect(Cuit.offset.x - 3, 0, Cuit.offset.x, ctx.canvas.height);
+      ctx.fillRect(Cuit.offset.x - 3, 0, 3, ctx.canvas.height);
       for (let k in Cuit.buttons)
           Cuit.buttons[k].draw();
   },
@@ -261,27 +252,29 @@ const Cuit = {
 
       let idata = ctx.getImageData(ofs.x, ofs.y, cw, ch);
       let iarr = idata.data;
+      let iview = new DataView(iarr.buffer);
       for (let y = sy, ymax = ht - 1; y < ymax; y++)
       {
           const ry = (y - oy) * dp;
+          if (ry >= ch)
+              break;
           for (let x = sx, xmax = wh - 1; x < xmax; x++)
           {
               const rx = (x - ox) * dp;
-              if (rx > cw || ry > ch)
+              if (rx >= cw)
                   break;
-              const cell = color[map[x + y * wh] & 0x00ffff];
+              const cell = color[map[x + y * wh] & 0xff];
               for (let ny = 0; ny < dp; ny++)
               {
+                  if (ry + ny >= ch)
+                      break;
                   const ni = rx + (ry + ny) * cw;
                   for (let nx = 0; nx < dp; nx++)
                   {
                       if (rx + nx >= cw)
                           break;
                       const nix = 4 * (ni + nx);
-                      iarr[nix+0] = cell >> 16;
-                      iarr[nix+1] = (cell & 0x0000ff00) >> 8;
-                      iarr[nix+2] =  cell & 0x000000ff;
-                      iarr[nix+3] = 255;
+                      iview.setUint32(nix, cell);
                   }
               }
           }
@@ -299,16 +292,16 @@ const Cuit = {
       const delta = [ 1, wh, -1, -wh ]
       const rev_d = [ 2, 3, 0, 1 ]
       const org = Cuit.map;
-      let nex = new Uint8Array(wh * ht);
+      let nex = new Uint16Array(wh * ht);
       const ec = 'C'.charCodeAt(0);
       const ej = 'J'.charCodeAt(0);
       const ei = 'I'.charCodeAt(0);
       const eo = 'O'.charCodeAt(0);
       const ev = 'V'.charCodeAt(0);
       const ew = 'W'.charCodeAt(0);
-      const ec_on = 'C'.charCodeAt(0) + 1024;
-      const ei_on = 'I'.charCodeAt(0) + 1024;
-      const eo_on = 'O'.charCodeAt(0) + 1024;
+      const ec_on = 'C'.charCodeAt(0) + 128;
+      const ei_on = 'I'.charCodeAt(0) + 128;
+      const eo_on = 'O'.charCodeAt(0) + 128;
 
       for (let y = 1, ymax = ht - 1; y < ymax; y++)
       for (let x = 1, xmax = wh - 1; x < xmax; x++)
@@ -318,7 +311,7 @@ const Cuit = {
               nex[i] = org[i];
               continue;
           }
-          if (org[i] == ec || (org[i] & 0x00ffff) == ec_on) {
+          if (org[i] == ec || (org[i] & 0xff) == ec_on) {
               let on = false;
               let j;
               for (j = 0; j < delta.length; j++)
@@ -329,12 +322,12 @@ const Cuit = {
                   if (neig == ej) {
                       neig = org[i + 2 * delta[j]];
                   }
-                  if (neig == ev || neig == eo_on || (neig & 0x00ffff) == ec_on && (neig >> 16) != rev_d[j]) {
+                  if (neig == ev || neig == eo_on || (neig & 0xff) == ec_on && (neig >> 8) != rev_d[j]) {
                       on = true;
                       break;
                   }
               }
-              nex[i] = on ? ec_on + (j << 16) : ec;
+              nex[i] = on ? ec_on + (j << 8) : ec;
               continue;
           }
           if (org[i] == ei || org[i] == ei_on) {
@@ -634,18 +627,24 @@ Cuit.Button = function(btn) {
   const yoffset = 20;
   const margin = 20;
   const ctx = Cuit.ctx;
-  let btnheight = yoffset;
+  const line_width = 2;
+  const font_offset_x = 10;
+  const font_offset_y = 8;
+  const font_width  = 32;
+  const font_height = 28;
+  let btn_height = yoffset;
   let count = 0;
 
   Cuit.Button = function(btn) {
       this.name = btn.name;
       this.color = btn.color;
       this.group = btn.group;
+      this.fcolor = btn.fcolor;
       this.toggle = btn.toggle;
       this.func = btn.func;
       this.img = btn.img;
       this.x = xoffset;
-      this.y = btnheight;
+      this.y = btn_height;
 
       this.width = 40;
       this.height = 30;
@@ -655,6 +654,11 @@ Cuit.Button = function(btn) {
           this.ison = true;
       if (!btn.img) {
           this.draw = function() {
+              const lw = line_width;
+              const ox = font_offset_x;
+              const oy = font_offset_y;
+              const fw = font_width;
+              const fh = font_height;
               ctx.fillStyle = this.color;
               ctx.fillRect(this.x, this.y, this.width, this.height);
               if (this.ison) {
@@ -663,20 +667,21 @@ Cuit.Button = function(btn) {
               else {
                   ctx.fillStyle = '#eee';
               }
-              ctx.fillRect(this.x - 10, this.y - 8, 26, 26);
+              ctx.fillRect(this.x - ox, this.y - oy, fw, fh);
               if (this.group && !this.ison) {
                   ctx.fillStyle = '#f8f8f4';
               }
               else {
                   ctx.fillStyle = 'white';
               }
-              ctx.fillRect(this.x - 8, this.y - 6, 22, 22);
+              ctx.fillRect(this.x - ox + lw, this.y - oy + lw, fw - 2*lw, fh - 2*lw);
               if (this.ison)
-                  ctx.fillStyle = 'black';
+                  ctx.fillStyle = this.fcolor;
               else
                   ctx.fillStyle = '#aaa';
               ctx.font = "bold 21px sans-serif";
-              ctx.fillText(this.name, this.x - 4, this.y + 12);
+              ctx.textAlign = "center";
+              ctx.fillText(this.name, this.x + 6, this.y + 14);
           };
       }
       else {
@@ -719,7 +724,7 @@ Cuit.Button = function(btn) {
               setTimeout(function() { that.ison = false; that.draw(); }, 500);
           }
       }
-      btnheight += this.height + margin;
+      btn_height += this.height + margin;
       count++;
   };
   return new Cuit.Button(btn);
