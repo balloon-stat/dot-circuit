@@ -196,15 +196,16 @@ const Cuit = {
   },
   saveMap: function() {
       Cuit.msg.textContent = "Circuit saved";
-      let m = Cuit.map;
-      const strmap = new TextDecoder().decode(m.map(e=>e&0x7f));
+      const m = Cuit.map;
+      const s = new Uint8Array(m.map(e=>e&0x7f));
+      const strmap = new TextDecoder().decode(s);
       localStorage.setItem('CuitMap', strmap);
   },
   newMap: function() {
       Cuit.msg.textContent = "New circuit";
       const w = 'W'.charCodeAt(0);
       const max = Cuit.width * Cuit.height;
-      let map = new Uint16Array(max);
+      const map = new Uint16Array(max);
       map.fill(w);
       return map;
   },
@@ -213,7 +214,7 @@ const Cuit = {
       const map = localStorage.getItem('CuitMap');
       if (!map)
           return Cuit.newMap();
-      let uint8arr = new TextEncoder().encode(map);
+      const uint8arr = new TextEncoder().encode(map);
       return new Uint16Array(uint8arr);
   },
   drawUI: function(ctx) {
@@ -252,7 +253,6 @@ const Cuit = {
 
       let idata = ctx.getImageData(ofs.x, ofs.y, cw, ch);
       let iarr = idata.data;
-      let iview = new DataView(iarr.buffer);
       for (let y = sy, ymax = ht - 1; y < ymax; y++)
       {
           const ry = (y - oy) * dp;
@@ -274,7 +274,10 @@ const Cuit = {
                       if (rx + nx >= cw)
                           break;
                       const nix = 4 * (ni + nx);
-                      iview.setUint32(nix, cell);
+                      iarr[nix+0] =  cell               >>> 24;
+                      iarr[nix+1] = (cell & 0x00ff0000) >>> 16;
+                      iarr[nix+2] = (cell & 0x0000ff00) >>>  8;
+                      iarr[nix+3] =         0x000000ff;
                   }
               }
           }
@@ -356,7 +359,7 @@ const Cuit = {
               nex[i] = on ? eo_on : eo;
               continue;
           }
-          nex[i] = ew;
+          throw new Error(org[i] + " :invalid cell access");
       }
       Cuit.map = nex;
   },
@@ -734,6 +737,7 @@ Cuit.drawSyms = {
   xoffset: 10, yoffset: 275, width: 8, height: 8, margin: 10,
   base: function() {
       const ctx = Cuit.ctx;
+      ctx.textAlign = "left";
       ctx.fillStyle = 'white';
       ctx.fillRect(this.xoffset - 5, this.yoffset - 10, 90, 25);
   },
