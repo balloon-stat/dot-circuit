@@ -1,31 +1,43 @@
 'use strict';
 
 if (!Promise) {
-    window.alert("this site needs modern browser");
+    window.alert("This site needs modern browser");
     throw new Error("Promise object not found");
 }
 
 const Srv = {
-  write: function() {
-  },
-  read: function() {
-  },
-  upload: function() {
-      Srv.title = window.prompt("Input Title");
-      if (!Srv.title)
+  write:() => {
+      const link = document.createElement('a');
+      const name = window.prompt("Input title for a download file");
+      if (name == "") {
+          window.alert("Cancel a download");
           return;
+      }
+      else if (!window.confirm("Is file name '" + name + ".png' ?"))
+          return;
+      link.download = name;
+          
       const canvas = document.getElementById('map');
       Cuit.mapto(canvas);
-      //Srv.map = canvas.toBlob();
-      Srv.toThumb(Cuit.ctx).
-          then(function() {
-              const thm = document.getElementById('thumbnail');
-              //Srv.thm = thm.toBlob();
-          })
-          //.then(Srv.send)
-          //.then(function() { location.href = '/serve'; });
+      canvas.toBlob(blob => {
+          link.href = URL.createObjectURL(blob);
+          link.click();
+          URL.revokeObjectURL(link.href);
+      });
   },
-  toThumb: function(ctx) {
+  read:() => {
+      const i = document.createElement('input');
+      i.setAttribute("type","file");
+      i.click();
+      i.onchange = () => {
+          const r = new FileReader();
+          r.onload = () => {
+              Cuit.urlToMap(r.result);
+          }
+          r.readAsDataURL(i.files[0]);
+      };
+  },
+  toThumb: (ctx) => {
       return new Promise((resolve,reject) => {
         const ratio = 0.5;
         const org = ctx.canvas;
@@ -42,6 +54,7 @@ const Srv = {
         }
         image.src = org.toDataURL();
       });
+          //.then(function() { location.href = '/serve'; });
   },
 };
 
@@ -153,7 +166,7 @@ const Cuit = {
       }
       ctx.putImageData(idata, 0, 0);
   },
-  tomap: function(src) {
+  urlToMap: function(src) {
       return new Promise((resolve, reject) => {
         const canvas = document.getElementById('map');
         canvas.width = Cuit.width;
@@ -165,9 +178,9 @@ const Cuit = {
         let img = new Image();
         img.src = src;
         img.onload = function() {
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, wh, ht);
             const color = Cuit.color;
-            let map = [];
+            let map = new Uint8Array(wh*ht);
             let elem = {};
             for (let e in color)
             {
@@ -177,13 +190,13 @@ const Cuit = {
             let iarr = idata.data;
             let iview = new DataView(iarr.buffer);
             for (let y = 1, ymax = ht - 1; y < ymax; y++)
-            for (let x = 1, xmax = wh - 1; x < ymax; x++)
+            for (let x = 1, xmax = wh - 1; x < xmax; x++)
             {
                 const n = x + y * wh;
                 const cell = iview.getUint32(4*n);
                 map[n] = elem[cell];
                 if (map[n] === undefined)
-                    throw new Error("( " + x + ", " + y + " ) color not defined");
+                    throw new Error(`(${x}, ${y}): color is undefined`);
             }
             Cuit.map = map;
             resolve();
@@ -359,7 +372,8 @@ const Cuit = {
               nex[i] = on ? eo_on : eo;
               continue;
           }
-          throw new Error(org[i] + " :invalid cell access");
+          console.log(org[i-1])
+          throw new Error(`(${x}, ${y}) '${org[i]}' :invalid cell access`);
       }
       Cuit.map = nex;
   },
@@ -823,7 +837,7 @@ if (mapkey == "") {
     Cuit.update(Cuit.timerInterval);
 }
 else {
-    Cuit.tomap("/blob?key=" + mapkey).then(function() {
+    Cuit.urlToMap("/blob?key=" + mapkey).then(function() {
         Cuit.update(Cuit.timerInterval);
     });
 }
