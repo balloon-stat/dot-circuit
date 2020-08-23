@@ -6,17 +6,71 @@ if (!Promise) {
 }
 
 const Srv = {
-  write:() => {
+  async getMaps() {
+      const step = document.getElementById('step').value;
+      const interval = document.getElementById('interval').value;
+      const pixels = document.getElementById('pixels').value;
+      const max = parseInt(step, 10);
+      const delta = parseInt(interval, 10);
+      const magn = parseInt(pixels, 10);
+      const c = Cuit.capture();
+      const fn = x => Math.ceil(x / Cuit.dpp) * magn;
+      const w = fn(c.width);
+      const h = fn(c.height);
+      const stretch = map => {
+          const ret = new Uint8Array(map.byteLength * magn * magn);
+          let jj = 0;
+          for (let y = 0; y < h; y++) {
+              let j = jj;
+              for (let x = 0; x < w; x++) {
+                  ret[x + y * w] = map[j];
+                  if (x % magn == magn - 1)
+                      j++;
+              }
+              if (y % magn == magn - 1)
+                  jj = j;
+          }
+          return ret;
+      }
+      const maps = [stretch(c.map)];
+      for (let i = 0; i < max; i++) {
+          await new Promise(resolve => {
+              setTimeout(()=> {
+                  Cuit.step();
+                  Cuit.show();
+                  const capt = Cuit.capture();
+                  maps.push(stretch(capt.map));
+                  resolve();
+              }, delta);
+          });
+      }
+      return {w, h, delta, maps};
+  },
+  async record() {
       const link = document.createElement('a');
       const name = window.prompt("Input title for a download file");
-      if (name == "") {
-          window.alert("Cancel a download");
-          return;
-      }
-      else if (!window.confirm("Is file name '" + name + ".png' ?"))
-          return;
+      if (!name) return;
       link.download = name;
-          
+      const savedMode = Cuit.mode;
+      Cuit.mode = "P";
+      Cuit.isRun = false;
+      Cuit.msg.textContent = "Recording in progress";
+
+      const m = await Srv.getMaps();
+      Gif.init(0, 0, m.w, m.h, m.delta / 10);
+      const blob = Gif.createBlob(m.maps);
+      link.href = URL.createObjectURL(blob);
+      link.click();
+      URL.revokeObjectURL(link.href);
+      Cuit.mode = savedMode;
+      Cuit.msg.textContent = "";
+  },
+  write() {
+      const link = document.createElement('a');
+      const name = window.prompt("Input title for a download file");
+      if (!name) return;
+      link.download = name;
+      
       const canvas = document.getElementById('map');
       Cuit.mapto(canvas);
       canvas.toBlob(blob => {
@@ -25,25 +79,23 @@ const Srv = {
           URL.revokeObjectURL(link.href);
       });
   },
-  read:() => {
+  read() {
       const i = document.createElement('input');
       i.setAttribute("type","file");
       i.click();
       i.onchange = () => {
           const r = new FileReader();
-          r.onload = () => {
-              Cuit.urlToMap(r.result);
-          }
+          r.onload = () => Cuit.urlToMap(r.result);
           r.readAsDataURL(i.files[0]);
       };
   },
-  toThumb: (ctx) => {
+  toThumb(ctx) {
       return new Promise((resolve,reject) => {
         const ratio = 0.5;
         const org = ctx.canvas;
         const thm = document.querySelector('#thumbnail');
         let image = new Image();
-        image.onload = function() {
+        image.onload = () => {
             const ofs = Cuit.offset;
             const sw = org.width - ofs.x;
             const sh = org.height - ofs.y;
@@ -71,9 +123,12 @@ const Cuit = {
   origin: { x: 1, y: 1 },
   mouse: { x: 0, y: 0 },
   point: { begin: {}, end: {} },
+  pos: null, // {x: 0, y: 0, rx: 0, ry: 0},
   timerInterval: 500,
   buttons: {},
   msg: {},
+  nStep: 0,
+  nStepElem: null,
   strColor: {
       C: '#cdcdff',
       J: "#808080",
@@ -81,21 +136,36 @@ const Cuit = {
       O: "#008800",
       V: "#00ffff",
       W: "#ffffff",
+      B: "#000000",
       C_on: "#fff88a",
       I_on: "#ff9900",
       O_on: "#ff0000"
   },
   color: {  // rgba
-      67: 0xcdcdffff,    // 0100 0011
-      74: 0x808080ff,    // 0100 1010
-      73: 0xaa00aaff,    // 0100 1001
-      79: 0x008800ff,    // 0100 1111
-      86: 0x00ffffff,    // 0101 0110
-      87: 0xffffffff,    // 0101 0111
+      67:  0xcdcdffff,   // 0100 0011
+      74:  0x808080ff,   // 0100 1010
+      73:  0xaa00aaff,   // 0100 1001
+      79:  0x008800ff,   // 0100 1111
+      86:  0x00ffffff,   // 0101 0110
+      87:  0xffffffff,   // 0101 0111
+      66:  0x00000000,   // 0101 0010
       195: 0xfff88aff,   // 1100 0011
       201: 0xff9900ff,   // 1100 1001
       207: 0xff0000ff    // 1100 1111
   },
+  colorIndex:
+      new Map([
+         [ 0,  67],  // : C   
+         [ 1,  74],  // : J   
+         [ 2,  73],  // : I   
+         [ 3,  79],  // : O   
+         [ 4,  86],  // : V   
+         [ 5,  87],  // : W   
+         [ 6,  66],  // : B   
+         [ 8, 195],  // : C_on
+         [10, 201],  // : I_on
+         [11, 207],  // : O_on
+      ]),
   get isRun() {
       if (!Cuit.buttons)
           return false;
@@ -105,39 +175,41 @@ const Cuit = {
       if (!Cuit.buttons)
           return;
       Cuit.buttons.S.ison = bool;
+      Cuit.buttons.S.draw();
   },
-  init: function(canvas) {
+  init(canvas) {
+      Cuit.nStepElem = document.getElementById("nStep");
       Cuit.ctx = canvas.getContext("2d");
       Cuit.setEvents(canvas);
       Cuit.setButtons();
       Cuit.drawUI(Cuit.ctx);
       Cuit.drawSyms[Cuit.mode]();
   },
-  setEvents: function(canvas) {
+  setEvents(canvas) {
       document.onkeydown   = Cuit.keyDown;
       canvas.onmousedown   = Cuit.mouseDown;
       canvas.onmousemove   = Cuit.mouseMove;
       canvas.onmouseup     = Cuit.mouseUp;
       canvas.onmouseleave  = Cuit.mouseLeave;
-      canvas.oncontextmenu = function(e) { e.preventDefault(); };
+      canvas.oncontextmenu = e => e.preventDefault();
       canvas.addEventListener('wheel', Cuit.mouseWheel, {passive: false});
   },
-  setButtons: function() {
+  setButtons() {
       const setMode = function() {
           Cuit.mode = this.name
           Cuit.drawSyms[this.name]();
       };
       const btns = [
-          { name: 'S', color: "#ffcccc", fcolor: "#ffaa11", toggle: true, func: function(){}},
-          { name: 'W', color: "#ccffcc", fcolor: "#000000", group: 1, on: true,  func: setMode },
-          { name: 'E', color: "#ccffcc", fcolor: "#000000", group: 1, on: false, func: setMode },
-          { name: 'R', color: "#ccffcc", fcolor: "#000000", group: 1, on: false, func: setMode },
+          { name: 'S', color: "#ffcccc", fcolor: "#ffaa11", toggle: true, func: ()=>{}},
+          { name: 'W', color: "#ccffcc", fcolor: "#448844", group: 1, on: true,  func: setMode },
+          { name: 'E', color: "#ccffcc", fcolor: "#448844", group: 1, on: false, func: setMode },
+          { name: 'R', color: "#ccffcc", fcolor: "#448844", group: 1, on: false, func: setMode },
           { name: '+', color: "#ccccff", fcolor: "#008800", func: Cuit.saveMap },
       ];
       for (let i = 0; i < btns.length; i++)
           Cuit.buttons[btns[i].name] = new Cuit.Button(btns[i]);
   },
-  mapto: function(canvas) {
+  mapto(canvas) {
       canvas.width = Cuit.width;
       canvas.height = Cuit.height;
       const wh = canvas.width;
@@ -166,7 +238,7 @@ const Cuit = {
       }
       ctx.putImageData(idata, 0, 0);
   },
-  urlToMap: function(src) {
+  urlToMap(src) {
       return new Promise((resolve, reject) => {
         const canvas = document.getElementById('map');
         canvas.width = Cuit.width;
@@ -177,7 +249,7 @@ const Cuit = {
         const color = Cuit.color;
         let img = new Image();
         img.src = src;
-        img.onload = function() {
+        img.onload = () => {
             ctx.drawImage(img, 0, 0, wh, ht);
             const color = Cuit.color;
             let map = new Uint8Array(wh*ht);
@@ -201,20 +273,43 @@ const Cuit = {
             Cuit.map = map;
             resolve();
         };
-        img.onerror = function(stuff) {
+        img.onerror = stuff => {
             console.log("img onerror:", stuff);
             reject();
         };
       });
   },
-  saveMap: function() {
+  capture() {
+      const dpp = Cuit.dpp;
+      const ofs = Cuit.offset;
+      const cvs = Cuit.ctx.canvas;
+      const width = cvs.width - ofs.x;
+      const height = cvs.height - ofs.y;
+      let idata = Cuit.ctx.getImageData(ofs.x, ofs.y, width, height);
+      let iarr = idata.data;
+      let iview = new DataView(iarr.buffer);
+      let cells = [];
+      for (let y = 0; y < height; y += dpp)
+      for (let x = 0; x < width; x += dpp)
+      {
+          const n = x + y * width;
+          cells.push(iview.getUint32(4*n));
+      }
+      const color = Cuit.color;
+      const index = Cuit.colorIndex;
+      const rev = {};
+      for (let [ix, ch] of index)
+          rev[color[ch]] = ix;
+      const map = Uint8Array.from(cells, c => rev[c]);
+      return {width, height, map};
+  },
+  saveMap() {
       Cuit.msg.textContent = "Circuit saved";
-      const m = Cuit.map;
-      const s = new Uint8Array(m.map(e=>e&0x7f));
+      const s = Uint8Array.from(Cuit.map, e => e & 0x7f);
       const strmap = new TextDecoder().decode(s);
       localStorage.setItem('CuitMap', strmap);
   },
-  newMap: function() {
+  newMap() {
       Cuit.msg.textContent = "New circuit";
       const w = 'W'.charCodeAt(0);
       const max = Cuit.width * Cuit.height;
@@ -222,7 +317,7 @@ const Cuit = {
       map.fill(w);
       return map;
   },
-  readMap: function() {
+  readMap() {
       Cuit.msg.textContent = "Circuit read";
       const map = localStorage.getItem('CuitMap');
       if (!map)
@@ -230,7 +325,7 @@ const Cuit = {
       const uint8arr = new TextEncoder().encode(map);
       return new Uint16Array(uint8arr);
   },
-  drawUI: function(ctx) {
+  drawUI(ctx) {
       ctx.fillStyle = '#fafafa';
       ctx.fillRect(0, 0, Cuit.offset.x, ctx.canvas.height);
       ctx.fillStyle = '#bdbdfd';
@@ -239,12 +334,12 @@ const Cuit = {
       for (let k in Cuit.buttons)
           Cuit.buttons[k].draw();
   },
-  update: function(interval) {
+  update(interval) {
       if (Cuit.isRun)
           Cuit.step();
-      setTimeout(function() { Cuit.update(interval); }, interval);
+      setTimeout( () => Cuit.update(interval), interval);
   },
-  show: function() {
+  show() {
       const dp = Cuit.dpp;
       const ox = Cuit.origin.x;
       const oy = Cuit.origin.y;
@@ -296,13 +391,15 @@ const Cuit = {
           }
       }
       ctx.putImageData(idata, ofs.x, ofs.y);
-      if (Cuit.mode == 'E')
-          Cuit.drawEditRect();
-      if (Cuit.mode == 'W')
-          Cuit.drawCurPos();
+      switch (Cuit.mode) {
+          case 'W': Cuit.drawCurPos();   break;
+          case 'E': Cuit.drawEditRect(); break;
+          case 'P': break;
+      }
+      Cuit.nStepElem.textContent = Cuit.nStep;
       requestAnimationFrame(Cuit.show);
   },
-  step: function(ctx) {
+  step(ctx) {
       const wh = Cuit.width;
       const ht = Cuit.height;
       const delta = [ 1, wh, -1, -wh ]
@@ -376,19 +473,14 @@ const Cuit = {
           throw new Error(`(${x}, ${y}) '${org[i]}' :invalid cell access`);
       }
       Cuit.map = nex;
+      Cuit.nStep++;
   },
-  showPos: function(p) {
-      if (!p) {
-          const m = Cuit.mouse;
-          p = Cuit.calcPos(m.x, m.y);
-          if (!p)
-              return;
-      }
-      const ctx = Cuit.ctx;
+  showPos(p) {
+      if (!p) return;
       const pos = document.getElementById('pos');
-      pos.textContent = " ( " + p.x + ", " + p.y + " ) ";
+      pos.textContent = ` ( ${p.x}, ${p.y} ) `;
   },
-  drawEditRect: function() {
+  drawEditRect() {
       const end = Cuit.point.end;
       const begin = Cuit.point.begin;
       const width = end.rx - begin.rx;
@@ -396,7 +488,7 @@ const Cuit = {
       Cuit.ctx.strokeStyle = '#ffff00';
       Cuit.ctx.strokeRect(begin.rx, begin.ry, width, height);
   },
-  drawCurPos: function() {
+  drawCurPos() {
       const dpp = Cuit.dpp;
       const p = Cuit.pos;
       if (!p || Cuit.mouseIsDown)
@@ -407,13 +499,15 @@ const Cuit = {
       Cuit.ctx.globalCompositeOperation = "source-over";
   },
 
-  mouseMove: function(e) {
+  mouseMove(e) {
+      if (Cuit.mode == "P") return;
       Cuit.msg.textContent = "";
       const px = e.offsetX;
       const py = e.offsetY;
       Cuit.mouse.x = px;
       Cuit.mouse.y = py;
       const p = Cuit.calcPos(px, py);
+      Cuit.pos = p;
       if (!p) {
           const btns = Cuit.buttons;
           let isin = false;
@@ -427,7 +521,6 @@ const Cuit = {
               Cuit.ctx.canvas.style.cursor = 'auto';
           return;
       }
-      Cuit.pos = p;
       Cuit.showPos(p);
       if (Cuit.mouseIsDown) {
           switch (Cuit.mode) {
@@ -438,7 +531,7 @@ const Cuit = {
           }
       }
   },
-  calcPos: function(px, py) {
+  calcPos(px, py) {
       const dp = Cuit.dpp;
       const ofs = Cuit.offset;
       const qx = px - ofs.x;
@@ -450,14 +543,13 @@ const Cuit = {
       const o = Cuit.origin;
       const x = ox / dp + o.x;
       const y = oy / dp + o.y;
-      const ix = x + y * Cuit.width;
       if (x >= Cuit.width - 1 || y >= Cuit.height - 1)
         return null;
       const rx = ox + ofs.x
       const ry = oy + ofs.y
       return {x: x, y: y, rx: rx, ry: ry};
   },
-  putElem: function(p) {
+  putElem(p) {
       const wh = Cuit.width;
       const ht = Cuit.height;
       if (p.x <= 0 || p.x >= wh - 1 || p.y <= 0 || p.y >= ht - 1)
@@ -469,7 +561,7 @@ const Cuit = {
       Cuit.ctx.fillRect(p.rx, p.ry, dp, dp);
       Cuit.map[ix] = Cuit.selectedElem;
   },
-  updateEnd: function(pos) {
+  updateEnd(pos) {
       Cuit.show();
       const p0 = Cuit.point.begin;
       const pm = Cuit.mouse;
@@ -480,7 +572,7 @@ const Cuit = {
       Cuit.point.end = {x:p.x+tx, y:p.y+ty, rx:p.rx+tx*d, ry:p.ry+ty*d};
       Cuit.drawEditRect();
   },
-  moveOrigin: function(x, y) {
+  moveOrigin(x, y) {
       const begin = Cuit.point.begin;
       if (x != begin.x) {
           Cuit.origin.x += begin.x - x;
@@ -490,7 +582,7 @@ const Cuit = {
       }
       Cuit.show();
   },
-  copy: function(isCut) {
+  copy(isCut) {
       const begin = Cuit.point.begin;
       const end = Cuit.point.end;
       const map = Cuit.map;
@@ -527,16 +619,16 @@ const Cuit = {
       }
       Cuit.copydata = copy;
   },
-  yank: function() {
+  yank() {
       Cuit.copy(false);
       Cuit.msg.textContent = "yank";
   },
-  cut: function() {
+  cut() {
       Cuit.copy(true);
       Cuit.show();
       Cuit.msg.textContent = "cut";
   },
-  paste: function(x, y) {
+  paste(x, y) {
       const data = Cuit.copydata;
       const map = Cuit.map;
       const wh = Cuit.width;
@@ -557,7 +649,8 @@ const Cuit = {
       Cuit.show();
       Cuit.msg.textContent = "paste";
   },
-  keyDown: function(e) {
+  keyDown(e) {
+      if (Cuit.mode == "P") return;
       const kc = e.keyCode;
       const ch = String.fromCharCode(kc);
       switch (ch) {
@@ -590,19 +683,21 @@ const Cuit = {
       }
       return false;
   },
-  mouseWheel: function(e) {
+  mouseWheel(e) {
       e.preventDefault();
+      if (Cuit.mode == "P") return;
       let n = Cuit.dpp;
       n += Math.sign(e.deltaY);
       if (n >= 1 && n <= 40) {
           Cuit.dpp = n;
-          document.getElementById('wheel').textContent = n;
+          document.getElementById('wheel').textContent = "×" + n;
           Cuit.show();
           Cuit.showPos();
       }
   },
-  mouseDown: function(e) {
+  mouseDown(e) {
       e.preventDefault();
+      if (Cuit.mode == "P") return;
       Cuit.isRight = e.button == 2;
       if (Cuit.isRight)
           Cuit.selectedElem = 'W'.charCodeAt(0);
@@ -615,7 +710,8 @@ const Cuit = {
       }
       Cuit.mouseMove(e);
   },
-  mouseUp: function() {
+  mouseUp() {
+      if (Cuit.mode == "P") return;
       if (Cuit.isRight)
           Cuit.selectedElem = Cuit.curElem;
       Cuit.isRight = false;
@@ -630,10 +726,11 @@ const Cuit = {
           }
       }
       else {
-          document.getElementById('circuit').style.cursor = 'auto';
+          Cuit.ctx.canvas.style.cursor = 'auto';
       }
   },
-  mouseLeave: function() {
+  mouseLeave() {
+      Cuit.pos = null;
       Cuit.mouse = {x:0, y:0};
       document.getElementById('pos').textContent = " ( 0, 0 ) ";
   },
@@ -749,13 +846,13 @@ Cuit.Button = function(btn) {
 
 Cuit.drawSyms = {
   xoffset: 10, yoffset: 275, width: 8, height: 8, margin: 10,
-  base: function() {
+  base() {
       const ctx = Cuit.ctx;
       ctx.textAlign = "left";
       ctx.fillStyle = 'white';
       ctx.fillRect(this.xoffset - 5, this.yoffset - 10, 90, 25);
   },
-  W: function() {
+  W() {
       Cuit.drawSyms.base();
       const x = this.xoffset;
       const y = this.yoffset;
@@ -780,15 +877,15 @@ Cuit.drawSyms = {
           sx += m + w;
       }
   },
-  E: function() {
+  E() {
       const list = [ 'X', 'Y', 'P' ];
       Cuit.drawSyms.strings(list, 1);
   },
-  R: function() {
+  R() {
       const list = [ 'G', 'N' ];
       Cuit.drawSyms.strings(list, 1.5);
   },
-  strings: function(list, offset) {
+  strings(list, offset) {
       Cuit.drawSyms.base();
       const ctx = Cuit.ctx;
       ctx.fillStyle = 'gray';
@@ -819,12 +916,13 @@ const divinfo = document.getElementById('info');
 divinfo.appendChild(spanwheel);
 divinfo.appendChild(spanpos);
 divinfo.appendChild(spanmsg);
-spanwheel.textContent = Cuit.dpp;
+spanwheel.textContent = "×" + Cuit.dpp;
 spanpos  .textContent = " ( 0, 0 ) ";
 Cuit.msg = spanmsg;
 
-document.getElementById('write').addEventListener('click', Srv.write);
-document.getElementById('read').addEventListener('click', Srv.read);
+document.getElementById('write' ).onclick = Srv.write;
+document.getElementById('read'  ).onclick = Srv.read;
+document.getElementById('record').onclick = Srv.record;
 if (init_origin != "")
     Cuit.origin = JSON.parse(init_origin);
 if (init_dpp != "")
@@ -837,11 +935,10 @@ if (mapkey == "") {
     Cuit.update(Cuit.timerInterval);
 }
 else {
-    Cuit.urlToMap("/blob?key=" + mapkey).then(function() {
+    Cuit.urlToMap("/blob?key=" + mapkey).then( () => {
         Cuit.update(Cuit.timerInterval);
     });
 }
 
 requestAnimationFrame(Cuit.show);
-
 

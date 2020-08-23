@@ -10,21 +10,47 @@
     <div id="header">
       <h1><a href="/">Circuit Life</a></h1>
     </div>
-    <div class="container">
-      <div class="content">
-        <div class="line">
-          <button id="read">read</button>
-          <button id="write">write</button>
+    <div class="outer-container">
+      <div class="record-container">
+        <div class="record-content">
+          <h3>Recording</h3>
+          <hr>
+          <div class="settings">
+            <label for="step"> step: <br>
+            <input id="step" type="number" step="1" min="1" value="5"> times </label>
+          </div>
+          <div class="settings">
+            <label for="interval"> interval: <br>
+            <input id="interval" type="number" step="10" min="30" value="500"> ms </label>
+          </div>
+          <div class="settings">
+            <label for="pixels"> pixels per cell: <br>
+            <input id="pixels" type="number" step="1" min="1" value="20"> pixels </label>
+          </div>
+          <hr>
+          <div id="record-btnbox">
+            <button id="record">record</button>
+          </div>
         </div>
-        <div id="space"></div>
-        <div id="circuit-container">
-          <canvas id="circuit" width="500" height="300"></canvas>
+      </div>
+      <div class="container">
+        <div class="content">
+          <div class="space-container">
+            <div class="space">
+              <button id="read">read</button>
+              <button id="write">write</button>
+            </div>
+          </div>
+          <div id="circuit-container">
+            <canvas id="circuit" width="500" height="300"></canvas>
+            <div id="nStep">0</div>
+            <div id="info"></div>
+          </div>
         </div>
-        <div id="info"></div>
       </div>
     </div>
     <div id="footer">
-      <div id="creater">by yuk</div>
+      <div id="creator">by yuk</div>
     </div>
     <canvas id="map"></canvas>
     <canvas id="thumbnail"></canvas>
@@ -33,6 +59,7 @@
       var init_origin = 0;
       var init_dpp    = 20;
     </script>
+    <script src="gif.js"></script>
     <script src="circuit.js"></script>
   </body>
 </html>

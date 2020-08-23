@@ -6,10 +6,10 @@ html, body {
 }
 
 h1 {
-    font-size: 54px;
+    font-size: 42px;
     margin: 0;
-    padding: 30px;
-    padding-bottom: 0;
+    padding: 16px;
+    padding-left: 30px;
 }
 
 a {
@@ -22,144 +22,138 @@ h1:hover, a:hover {
 }
 
 div, p {
-    font-size: 23px;
+    font-size: 20px;
     color: gray;
+}
+
+hr {
+    border: 1px solid #dddddd;
+    margin: 30px 0;
+}
+label {
+}
+input {
+    font-size: 20px;
+    margin: 6px;
+    padding: 6px;
+    width: 80px;
+    text-align: right;
+    background-color: #fafaef;
+    border-radius: 5px;
+    border: 2px solid #ccc;
+    outline: none;
+}
+
+button {
+    float: right;
+    color: #9a9a9a;
+    font-size: 23px;
     font-weight: bold;
+    width: 90px;
+    margin: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    border: solid 1px #cecece;
+    cursor: pointer;
+    outline: none;
+}
+button:hover  { color: black; }
+button:active { color: white; }
+
+.outer-container {
+    width: 1060px;
+    margin: 0 auto;
 }
 
 .container {
-    width: 650px;
-    height: 550px;
-    margin: 0 auto;
+    width: 700px;
+    height: 620px;
+    margin: 0;
     background-color: #e8e8da;
 }
 
 .content {
-    width: 550px;
+    width: 690px;
     margin: 0 auto;
-    padding: 40px 0;
+    padding: 30px 0;
 }
 
 #header {
     margin: 0;
-    height: 140px;
+    height: 100px;
     background-color: #d8d8ca;
-}
-
-#header div {
-    margin: 0;
-    margin-right: 20px;
-    margin-left: auto;
-    padding: 20px;
-    text-align: right;
-    width: 300px;
 }
 
 #footer {
     margin: 0;
-    height: 200px;
+    height: 180px;
     background-color: #d8d8ca;
 }
 
-#creater {
+#creator {
     width: 100px;
     margin-right: 20px;
     margin-left: auto;
     padding: 10px 12px;
 }
 
-#line {
-}
-
-#space {
-    width: 550px;
-    height:60px;
-}
-
 #read {
-    font-size: 23px;
-    font-weight: bold;
-    float: right;
-    text-align: center;
-    color: #9d9d9d;
     background-color: #eeffee;
-    width: 100px;
-    margin: 10px;
-    padding: 10px;
-    border: solid 1px #cecece;
-    cursor: pointer;
 }
-
-#read:hover {
-    color: black;
-}
-
-#read:active {
-    color: white;
-}
-
 #write {
-    font-size: 23px;
-    font-weight: bold;
-    float: right;
-    text-align: center;
-    color: #9a9a9a;
     background-color: #ededff;
-    width: 100px;
-    margin: 10px;
-    padding: 10px;
-    border: solid 1px #cecece;
-    cursor: pointer;
 }
 
-#write:hover {
-    color: black;
-}
-
-#write:active {
-    color: white;
-}
-
-#list {
+#record {
+    float: none;
+    background-color: #ffeeee;
+    width: 130px;
     padding: 20px;
 }
-
-#list .item {
-    height: 200px;
+.settings {
+    margin: 20px 0;
 }
-
-#list .item .info {
-    padding: 30px;
-}
-
-#list .item .info a:hover {
-    color: red;
-}
-
-#list img {
-    float: left;
-    margin: 0 20px;
-    box-shadow:4px 2px 6px #010101;
-    border: none
-}
-
-.center {
+#record-btnbox {
     text-align: center;
+    margin: 10px auto;
+}
+.record-content {
+    width: 240px;
+    height: 620px;
+    padding: 10px 20px;
+    margin: 0;
+    box-sizing: border-box;
+}
+.record-container {
+    float: right;
+    background-color: #efefdf;
+    margin: 0;
+}
+
+.space {
+    width: 600px;
+    height: 64px;
+}
+.space-container {
+    margin-top: 30px;
+    margin-bottom: 0px;
 }
 
 #circuit-container {
-    width: 95%;
-    background-color: #e8e8e8;
-    margin: 10px;
+    width: 500px;
+    margin: 10px auto;
     padding: 0;
 }
 
 #circuit {
-    margin: 10px;
 }
 
 #info {
-    margin: 0 20px;
+    font-size: 23px;
+    font-weight: bold;
+}
+#nStep {
+    float: right;
 }
 
 #map, #thumbnail {
