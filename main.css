@@ -90,11 +90,10 @@ button:active { color: white; }
     background-color: #d8d8ca;
 }
 
-#creator {
-    width: 100px;
-    margin-right: 20px;
-    margin-left: auto;
-    padding: 10px 12px;
+#source {
+    float: right;
+    margin: 20px;
+    padding: 10px;
 }
 
 #read {
