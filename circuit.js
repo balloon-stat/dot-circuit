@@ -54,7 +54,7 @@ const Srv = {
       const savedMode = Cuit.mode;
       Cuit.mode = "P";
       Cuit.isRun = false;
-      Cuit.msg.textContent = "Recording in progress";
+      Cuit.msg.textContent = "Recording in progress...";
 
       const m = await Srv.getMaps();
       Gif.init(0, 0, m.w, m.h, m.delta / 10);
@@ -63,7 +63,7 @@ const Srv = {
       link.click();
       URL.revokeObjectURL(link.href);
       Cuit.mode = savedMode;
-      Cuit.msg.textContent = "";
+      Cuit.msg.textContent = "Finished recording!";
   },
   write() {
       const link = document.createElement('a');
@@ -219,22 +219,12 @@ const Cuit = {
       let idata = ctx.getImageData(0, 0, wh, ht);
       let iarr = idata.data;
       let iview = new DataView(iarr.buffer);
-      let color = {};
-      let el;
-      for (let e in Cuit.color)
-      {
-          if (e < 0x0080)
-              el = e;
-          else
-              el = e & 0x007f;
-          color[e] = Cuit.color[el];
-      };
       for (let y = 0; y < ht; y++)
       for (let x = 0; x < wh; x++)
       {
           const n = x + y * wh;
-          const cell = color[map[n]];
-          iview.setUint32(4*n, cell);
+          const cell = map[n] & 0x007f;
+          iview.setUint32(4*n, this.color[cell]);
       }
       ctx.putImageData(idata, 0, 0);
   },
@@ -271,6 +261,7 @@ const Cuit = {
                     throw new Error(`(${x}, ${y}): color is undefined`);
             }
             Cuit.map = map;
+            Cuit.nStep = 0;
             resolve();
         };
         img.onerror = stuff => {
@@ -649,6 +640,18 @@ const Cuit = {
       Cuit.show();
       Cuit.msg.textContent = "paste";
   },
+  setZeroStep() {
+      Cuit.nStep = 0;
+      const wh = Cuit.width;
+      const ht = Cuit.height;
+      const map = Cuit.map;
+      for (let y = 0; y < ht; y++)
+      for (let x = 0; x < wh; x++)
+      {
+          const n = x + y * wh;
+          map[n] = map[n] & 0x007f;
+      }
+  },
   keyDown(e) {
       if (Cuit.mode == "P") return;
       const kc = e.keyCode;
@@ -667,6 +670,10 @@ const Cuit = {
           case 'P':
               const p = Cuit.point.begin;
               Cuit.paste(p.x, p.y);
+              break;
+          case 'Z':
+              Cuit.setZeroStep();
+              Cuit.show();
               break;
           case 'G':
               Cuit.origin.x = 1;
@@ -882,8 +889,8 @@ Cuit.drawSyms = {
       Cuit.drawSyms.strings(list, 1);
   },
   R() {
-      const list = [ 'G', 'N' ];
-      Cuit.drawSyms.strings(list, 1.5);
+      const list = [ 'Z', 'G', 'N' ];
+      Cuit.drawSyms.strings(list, 1);
   },
   strings(list, offset) {
       Cuit.drawSyms.base();
