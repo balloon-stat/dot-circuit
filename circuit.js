@@ -82,6 +82,7 @@ const Srv = {
   read() {
       const i = document.createElement('input');
       i.setAttribute("type","file");
+      i.setAttribute("accept","image/png");
       i.click();
       i.onchange = () => {
           const r = new FileReader();
@@ -642,15 +643,9 @@ const Cuit = {
   },
   setZeroStep() {
       Cuit.nStep = 0;
-      const wh = Cuit.width;
-      const ht = Cuit.height;
       const map = Cuit.map;
-      for (let y = 0; y < ht; y++)
-      for (let x = 0; x < wh; x++)
-      {
-          const n = x + y * wh;
-          map[n] = map[n] & 0x007f;
-      }
+      for (let i = 0, max = map.length; i < max; i++)
+          map[i] = map[i] & 0x007f;
   },
   keyDown(e) {
       if (Cuit.mode == "P") return;
