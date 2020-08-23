@@ -91,7 +91,7 @@ const Srv = {
       };
   },
   toThumb(ctx) {
-      return new Promise((resolve,reject) => {
+      return new Promise((resolve, reject) => {
         const ratio = 0.5;
         const org = ctx.canvas;
         const thm = document.querySelector('#thumbnail');
@@ -104,8 +104,12 @@ const Srv = {
             thm.height = sh * ratio;
             thm.getContext("2d").drawImage(image, ofs.x, ofs.y, sw, sh, 0, 0, thm.width, thm.height);
             resolve();
-        }
+        };
         image.src = org.toDataURL();
+        image.onerror = stuff => {
+            console.log("image on error:", stuff);
+            reject();
+        };
       });
           //.then(function() { location.href = '/serve'; });
   },
@@ -210,9 +214,9 @@ const Cuit = {
       for (let i = 0; i < btns.length; i++)
           Cuit.buttons[btns[i].name] = new Cuit.Button(btns[i]);
   },
-  mapto(canvas) {
-      canvas.width = Cuit.width;
-      canvas.height = Cuit.height;
+  mapto(canvas, width=Cuit.width, height=Cuit.height) {
+      canvas.width = width;
+      canvas.height = height;
       const wh = canvas.width;
       const ht = canvas.height;
       const ctx = canvas.getContext("2d");
@@ -223,50 +227,50 @@ const Cuit = {
       for (let y = 0; y < ht; y++)
       for (let x = 0; x < wh; x++)
       {
-          const n = x + y * wh;
+          const n = x + y * Cuit.width;
+          const m = x + y * wh;
           const cell = map[n] & 0x007f;
-          iview.setUint32(4*n, this.color[cell]);
+          iview.setUint32(4*m, this.color[cell]);
       }
       ctx.putImageData(idata, 0, 0);
   },
-  urlToMap(src) {
+  async urlToMap(src, width=Cuit.width, height=Cuit.height) {
       return new Promise((resolve, reject) => {
         const canvas = document.getElementById('map');
-        canvas.width = Cuit.width;
-        canvas.height = Cuit.height;
-        const wh = canvas.width;
-        const ht = canvas.height;
+        canvas.width = width;
+        canvas.height = height;
         const ctx = canvas.getContext("2d");
         const color = Cuit.color;
         let img = new Image();
         img.src = src;
         img.onload = () => {
-            ctx.drawImage(img, 0, 0, wh, ht);
+            ctx.drawImage(img, 0, 0, width, height);
             const color = Cuit.color;
-            let map = new Uint8Array(wh*ht);
+            let map = Cuit.newMap();
             let elem = {};
             for (let e in color)
             {
                 elem[color[e]] = e;
             }
-            let idata = ctx.getImageData(0, 0, wh, ht);
+            let idata = ctx.getImageData(0, 0, width, height);
             let iarr = idata.data;
             let iview = new DataView(iarr.buffer);
-            for (let y = 1, ymax = ht - 1; y < ymax; y++)
-            for (let x = 1, xmax = wh - 1; x < xmax; x++)
+            for (let y = 1, ymax = height - 1; y < ymax; y++)
+            for (let x = 1, xmax = width - 1; x < xmax; x++)
             {
-                const n = x + y * wh;
-                const cell = iview.getUint32(4*n);
+                const n = x + y * Cuit.width;
+                const m = x + y * width;
+                const cell = iview.getUint32(4*m);
                 map[n] = elem[cell];
                 if (map[n] === undefined)
                     throw new Error(`(${x}, ${y}): color is undefined`);
             }
-            Cuit.map = map;
             Cuit.nStep = 0;
+            Cuit.map = map;
             resolve();
         };
         img.onerror = stuff => {
-            console.log("img onerror:", stuff);
+            console.log("image onerror:", stuff);
             reject();
         };
       });
@@ -300,13 +304,19 @@ const Cuit = {
       const s = Uint8Array.from(Cuit.map, e => e & 0x7f);
       const strmap = new TextDecoder().decode(s);
       localStorage.setItem('CuitMap', strmap);
+
+      const canvas = document.getElementById('map');
+      const w = 20;
+      const h = 15;
+      Cuit.mapto(canvas, w, h);
+      const data = canvas.toDataURL();
+      history.pushState(null, "", `?w=${w}&h=${h}&mapdata=${data}`);
   },
   newMap() {
       Cuit.msg.textContent = "New circuit";
-      const w = 'W'.charCodeAt(0);
       const max = Cuit.width * Cuit.height;
       const map = new Uint16Array(max);
-      map.fill(w);
+      map.fill('W'.charCodeAt(0));
       return map;
   },
   readMap() {
@@ -316,6 +326,12 @@ const Cuit = {
           return Cuit.newMap();
       const uint8arr = new TextEncoder().encode(map);
       return new Uint16Array(uint8arr);
+  },
+  async setClipMap(params) {
+      const width = parseInt(params.get("w"), 10);
+      const height = parseInt(params.get("h"), 10);
+      const data = params.get("mapdata");
+      return Cuit.urlToMap(data, width, height);
   },
   drawUI(ctx) {
       ctx.fillStyle = '#fafafa';
@@ -925,22 +941,18 @@ Cuit.msg = spanmsg;
 document.getElementById('write' ).onclick = Srv.write;
 document.getElementById('read'  ).onclick = Srv.read;
 document.getElementById('record').onclick = Srv.record;
-if (init_origin != "")
-    Cuit.origin = JSON.parse(init_origin);
-if (init_dpp != "")
-    Cuit.dpp = parseInt(init_dpp);
-const canvas = document.getElementById('circuit');
-Cuit.init(canvas)
+
+Cuit.init(document.getElementById('circuit'))
 Cuit.buttons.S.on();
-if (mapkey == "") {
-    Cuit.map = Cuit.readMap();
-    Cuit.update(Cuit.timerInterval);
-}
-else {
-    Cuit.urlToMap("/blob?key=" + mapkey).then( () => {
+const params = (new URL(location)).searchParams;
+if (params.has("mapdata")) {
+    Cuit.setClipMap(params).then(() => {
         Cuit.update(Cuit.timerInterval);
     });
 }
-
+else {
+    Cuit.map = Cuit.readMap();
+    Cuit.update(Cuit.timerInterval);
+}
 requestAnimationFrame(Cuit.show);
 
