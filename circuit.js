@@ -90,29 +90,6 @@ const Srv = {
           r.readAsDataURL(i.files[0]);
       };
   },
-  toThumb(ctx) {
-      return new Promise((resolve, reject) => {
-        const ratio = 0.5;
-        const org = ctx.canvas;
-        const thm = document.querySelector('#thumbnail');
-        let image = new Image();
-        image.onload = () => {
-            const ofs = Cuit.offset;
-            const sw = org.width - ofs.x;
-            const sh = org.height - ofs.y;
-            thm.width = sw * ratio;
-            thm.height = sh * ratio;
-            thm.getContext("2d").drawImage(image, ofs.x, ofs.y, sw, sh, 0, 0, thm.width, thm.height);
-            resolve();
-        };
-        image.src = org.toDataURL();
-        image.onerror = stuff => {
-            console.log("image on error:", stuff);
-            reject();
-        };
-      });
-          //.then(function() { location.href = '/serve'; });
-  },
 };
 
 const Cuit = {
@@ -230,6 +207,8 @@ const Cuit = {
           const n = x + y * Cuit.width;
           const m = x + y * wh;
           const cell = map[n] & 0x007f;
+          if (cell == 0)
+              throw new Error("cell value is zero");
           iview.setUint32(4*m, this.color[cell]);
       }
       ctx.putImageData(idata, 0, 0);
@@ -943,7 +922,7 @@ document.getElementById('read'  ).onclick = Srv.read;
 document.getElementById('record').onclick = Srv.record;
 
 Cuit.init(document.getElementById('circuit'))
-Cuit.buttons.S.on();
+Cuit.isRun = true;
 const params = (new URL(location)).searchParams;
 if (params.has("mapdata")) {
     Cuit.setClipMap(params).then(() => {
@@ -954,5 +933,6 @@ else {
     Cuit.map = Cuit.readMap();
     Cuit.update(Cuit.timerInterval);
 }
+
 requestAnimationFrame(Cuit.show);
 
