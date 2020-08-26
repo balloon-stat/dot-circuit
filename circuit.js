@@ -287,9 +287,70 @@ const Cuit = {
       const canvas = document.getElementById('map');
       const w = 20;
       const h = 15;
-      Cuit.mapto(canvas, w, h);
-      const data = canvas.toDataURL();
+      const data = Cuit.encodeStrMap(strmap, w, h);
       history.pushState(null, "", `?w=${w}&h=${h}&mapdata=${data}`);
+  },
+  encodeStrMap(strmap, width, height) {
+      const runLength = text => {
+          let ret = "";
+          let count = 0;
+          for (let i = 0, max = text.length; i < max; i++) {
+              const cur  = text[i];
+              const next = text[i+1];
+              if (cur == next)
+                  count++;
+              else {
+                  if (count == 0)
+                      ret += cur;
+                  else
+                      ret += cur + (count + 1);
+                  count = 0;
+              }
+          }
+          return ret;
+      };
+      const ys = []
+      const wh = Cuit.width;
+      for (let y = 0; y < height; y++) {
+          const xs = strmap.substr(y * wh, width);
+          ys.push(";" + runLength(xs) + ",");
+      }
+      return runLength(ys).substr(1);
+  },
+  decodeStrMap(data, width, height) {
+      const map = Cuit.newMap();
+      const dataMap = data.split(";");
+      const nums = "0123456789";
+      let y = 0;
+      for (let yi= 0, max = dataMap.length; yi < max; yi++) {
+          let [cip, yrepeat] = dataMap[yi].split(",");
+          let yrep = 1;
+          if (yrepeat)
+              yrep = parseInt(yrepeat, 10);
+          let x = 0;
+          let xs = [];
+          while (cip[x]) {
+              const cell = cip[x].charCodeAt(0);
+              x++;
+              let dx = 0;
+              while (nums.includes(cip[x + dx]))
+                  dx++;
+              let xrep = 1;
+              if (dx != 0) {
+                  xrep = parseInt(cip.substr(x, dx), 10);
+              }
+              for (let i = 0; i < xrep; i++)
+                  xs.push(cell);
+              x += dx;
+          }
+          for (let j = 0; j < yrep; j++) {
+              let n = (y + j) * Cuit.width;
+              for (let i = 0, max = xs.length; i < max; i++)
+                  map[n+i] = xs[i];
+          }
+          y += yrep;
+      }
+      return map;
   },
   newMap() {
       Cuit.msg.textContent = "New circuit";
@@ -298,19 +359,19 @@ const Cuit = {
       map.fill('W'.charCodeAt(0));
       return map;
   },
-  readMap() {
+  readMap(params) {
       Cuit.msg.textContent = "Circuit read";
+      if (params.has("mapdata")) {
+          const width = parseInt(params.get("w"), 10);
+          const height = parseInt(params.get("h"), 10);
+          const data = params.get("mapdata");
+          return Cuit.decodeStrMap(data, width, height);
+      }
       const map = localStorage.getItem('CuitMap');
       if (!map)
           return Cuit.newMap();
       const uint8arr = new TextEncoder().encode(map);
       return new Uint16Array(uint8arr);
-  },
-  async setClipMap(params) {
-      const width = parseInt(params.get("w"), 10);
-      const height = parseInt(params.get("h"), 10);
-      const data = params.get("mapdata");
-      return Cuit.urlToMap(data, width, height);
   },
   drawUI(ctx) {
       ctx.fillStyle = '#fafafa';
@@ -392,7 +453,7 @@ const Cuit = {
       const delta = [ 1, wh, -1, -wh ]
       const rev_d = [ 2, 3, 0, 1 ]
       const org = Cuit.map;
-      let nex = new Uint16Array(wh * ht);
+      let nex = Cuit.newMap();
       const ec = 'C'.charCodeAt(0);
       const ej = 'J'.charCodeAt(0);
       const ei = 'I'.charCodeAt(0);
@@ -924,15 +985,7 @@ document.getElementById('record').onclick = Srv.record;
 Cuit.init(document.getElementById('circuit'))
 Cuit.isRun = true;
 const params = (new URL(location)).searchParams;
-if (params.has("mapdata")) {
-    Cuit.setClipMap(params).then(() => {
-        Cuit.update(Cuit.timerInterval);
-    });
-}
-else {
-    Cuit.map = Cuit.readMap();
-    Cuit.update(Cuit.timerInterval);
-}
-
+Cuit.map = Cuit.readMap(params);
+Cuit.update(Cuit.timerInterval);
 requestAnimationFrame(Cuit.show);
 
