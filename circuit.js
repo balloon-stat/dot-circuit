@@ -108,7 +108,9 @@ const Cuit = {
   pos: null, // {x: 0, y: 0, rx: 0, ry: 0},
   timerInterval: 500,
   buttons: {},
-  msg: {},
+  msg: null,
+  dppElem: null,
+  posElem: null,
   nStep: 0,
   nStepElem: null,
   strColor: {
@@ -160,7 +162,6 @@ const Cuit = {
       Cuit.buttons.S.draw();
   },
   init(canvas) {
-      Cuit.nStepElem = document.getElementById("nStep");
       Cuit.ctx = canvas.getContext("2d");
       Cuit.setEvents(canvas);
       Cuit.setButtons();
@@ -536,8 +537,7 @@ const Cuit = {
   },
   showPos(p) {
       if (!p) return;
-      const pos = document.getElementById('pos');
-      pos.textContent = ` ( ${p.x}, ${p.y} ) `;
+      Cuit.posElem.textContent = ` ( ${p.x}, ${p.y} ) `;
   },
   drawEditRect() {
       const end = Cuit.point.end;
@@ -760,7 +760,7 @@ const Cuit = {
       n += Math.sign(e.deltaY);
       if (n >= 1 && n <= 40) {
           Cuit.dpp = n;
-          document.getElementById('wheel').textContent = "×" + n;
+          Cuit.dppElem.textContent = "×" + n;
           Cuit.show();
           Cuit.showPos();
       }
@@ -802,7 +802,7 @@ const Cuit = {
   mouseLeave() {
       Cuit.pos = null;
       Cuit.mouse = {x:0, y:0};
-      document.getElementById('pos').textContent = " ( 0, 0 ) ";
+      Cuit.posElem.textContent = " ( 0, 0 ) ";
   },
 };
 
@@ -976,19 +976,10 @@ Cuit.drawSyms = {
 
 ////////////////////////////////////////////////////////////
 
-const spanwheel = document.createElement('span');
-const spanpos   = document.createElement('span');
-const spanmsg   = document.createElement('span');
-spanwheel.id = 'wheel';
-spanpos  .id = 'pos';
-spanmsg  .id = 'msg';
-const divinfo = document.getElementById('info');
-divinfo.appendChild(spanwheel);
-divinfo.appendChild(spanpos);
-divinfo.appendChild(spanmsg);
-spanwheel.textContent = "×" + Cuit.dpp;
-spanpos  .textContent = " ( 0, 0 ) ";
-Cuit.msg = spanmsg;
+Cuit.dppElem   = document.getElementById("dpp");
+Cuit.posElem   = document.getElementById("pos");
+Cuit.msg       = document.getElementById("msg");
+Cuit.nStepElem = document.getElementById("nStep");
 
 document.getElementById('write' ).onclick = Srv.write;
 document.getElementById('read'  ).onclick = Srv.read;
