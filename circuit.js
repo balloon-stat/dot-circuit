@@ -284,13 +284,21 @@ const Cuit = {
       const strmap = new TextDecoder().decode(s);
       localStorage.setItem('CuitMap', strmap);
 
-      const canvas = document.getElementById('map');
-      const w = 20;
-      const h = 15;
-      const data = Cuit.encodeStrMap(strmap, w, h);
-      history.pushState(null, "", `?w=${w}&h=${h}&mapdata=${data}`);
+      const ofs = Cuit.offset;
+      const cvs = Cuit.ctx.canvas;
+      const p = Cuit.dpp;
+      const o = Cuit.origin;
+      const w = Math.ceil((cvs.width - ofs.x) / p);
+      const h = Math.ceil((cvs.height - ofs.y) / p);
+      const mapdata = Cuit.encodeStrMap(strmap, o.x, o.y, w, h);
+      const params = new URLSearchParams({p, mapdata});
+      if (o.x != 1)
+          params.set("x", o.x);
+      if (o.y != 1)
+          params.set("y", o.y);
+      history.pushState(null, "", "?" + params);
   },
-  encodeStrMap(strmap, width, height) {
+  encodeStrMap(strmap, x0, y0, width, height) {
       const runLength = text => {
           let ret = "";
           let count = 0;
@@ -311,19 +319,19 @@ const Cuit = {
       };
       const ys = []
       const wh = Cuit.width;
-      for (let y = 0; y < height; y++) {
-          const xs = strmap.substr(y * wh, width);
-          ys.push(";" + runLength(xs) + ",");
+      for (let y = y0, max = y0 + height; y < max; y++) {
+          const xs = strmap.substr(x0 + y * wh, width);
+          ys.push("n" + runLength(xs) + "L");
       }
       return runLength(ys).substr(1);
   },
-  decodeStrMap(data, width, height) {
+  decodeStrMap(data, x0=1, y0=1) {
       const map = Cuit.newMap();
-      const dataMap = data.split(";");
+      const dataMap = data.split("n");
       const nums = "0123456789";
       let y = 0;
       for (let yi= 0, max = dataMap.length; yi < max; yi++) {
-          let [cip, yrepeat] = dataMap[yi].split(",");
+          let [cip, yrepeat] = dataMap[yi].split("L");
           let yrep = 1;
           if (yrepeat)
               yrep = parseInt(yrepeat, 10);
@@ -344,7 +352,7 @@ const Cuit = {
               x += dx;
           }
           for (let j = 0; j < yrep; j++) {
-              let n = (y + j) * Cuit.width;
+              let n = x0 + (y + y0 + j) * Cuit.width;
               for (let i = 0, max = xs.length; i < max; i++)
                   map[n+i] = xs[i];
           }
@@ -353,20 +361,23 @@ const Cuit = {
       return map;
   },
   newMap() {
-      Cuit.msg.textContent = "New circuit";
       const max = Cuit.width * Cuit.height;
       const map = new Uint16Array(max);
       map.fill('W'.charCodeAt(0));
       return map;
   },
   readMap(params) {
-      Cuit.msg.textContent = "Circuit read";
       if (params.has("mapdata")) {
-          const width = parseInt(params.get("w"), 10);
-          const height = parseInt(params.get("h"), 10);
+          Cuit.msg.textContent = "Circuit read from URL";
+          Cuit.dpp = parseInt(params.get("p"), 10);
+          document.getElementById('wheel').textContent = "×" + Cuit.dpp;
+          const x = parseInt(params.get("x") ?? "1", 10);
+          const y = parseInt(params.get("y") ?? "1", 10);
           const data = params.get("mapdata");
-          return Cuit.decodeStrMap(data, width, height);
+          Cuit.origin = {x, y};
+          return Cuit.decodeStrMap(data, x, y);
       }
+      Cuit.msg.textContent = "Circuit read";
       const map = localStorage.getItem('CuitMap');
       if (!map)
           return Cuit.newMap();
@@ -734,6 +745,7 @@ const Cuit = {
               break;
           case 'N':
               Cuit.map = Cuit.newMap();
+              Cuit.msg.textContent = "New circuit";
               Cuit.show();
               break;
           default:

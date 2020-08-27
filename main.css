@@ -145,6 +145,7 @@ button:active { color: white; }
 }
 
 #circuit {
+    background-color: #f8f8ea;
 }
 
 #info {
